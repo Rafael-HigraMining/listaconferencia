@@ -9,22 +9,36 @@ import unicodedata
 # -------------------------------------------------------------------
 
 def _remover_acentos(texto: str) -> str:
-    """Normaliza o texto, removendo acentos e cedilhas."""
     nfkd_form = unicodedata.normalize('NFD', texto)
     return "".join([c for c in nfkd_form if not unicodedata.combining(c)])
 
 def _normalizar_texto_completo(texto: str) -> str:
-    """Função central que aplica toda a normalização: minúsculas, sem acentos e espaços únicos."""
     texto_lower = texto.lower()
     texto_sem_acentos = _remover_acentos(texto_lower)
     texto_normalizado = re.sub(r'\s+', ' ', texto_sem_acentos)
     return texto_normalizado
 
+# --- NOVOS AJUDANTES PARA EXTRAÇÃO DE DADOS REPETIDOS ---
+def _extrair_tamanho_cabo_flexivel(texto_normalizado):
+    match = re.search(r"cabo flexivel.*?(\d+)\s*mm2", texto_normalizado)
+    if match:
+        return int(match.group(1))
+    return None
+
+def _extrair_numero_eixo(texto_normalizado):
+    match = re.search(r"(eixo bruto|eixo motriz).*?(\d+)[sl]", texto_normalizado)
+    if match:
+        return int(match.group(2))
+    return None
+
+# --- FUNÇÃO DO EIXO ATUALIZADA PARA USAR O NOVO AJUDANTE ---
 def checar_regra_eixo_bruto(texto_completo_pdf):
     texto_normalizado = _normalizar_texto_completo(texto_completo_pdf)
-    match = re.search(r"(eixo bruto|eixo motriz).*?(\d+)[sl]", texto_normalizado)
-    if not match: return { "regra": "Eixo Bruto/Motriz vs Grafites", "status": "FALHA", "detalhes": "A expressao 'eixo bruto' ou 'eixo motriz' seguida de um numero e S/L nao foi encontrada." }
-    numero_eixo = int(match.group(2))
+    numero_eixo = _extrair_numero_eixo(texto_normalizado)
+
+    if not numero_eixo: 
+        return { "regra": "Eixo Bruto/Motriz vs Grafites", "status": "FALHA", "detalhes": "A expressao 'eixo bruto' ou 'eixo motriz' seguida de um numero e S/L nao foi encontrada." }
+    
     if numero_eixo >= 225:
         tem_ranhurado = "grafite ranhurado" in texto_normalizado
         tem_liso = "grafite liso" in texto_normalizado
@@ -39,6 +53,7 @@ def checar_regra_eixo_bruto(texto_completo_pdf):
         if not tem_liso: return { "regra": "Eixo Bruto/Motriz vs Grafites", "status": "OK", "detalhes": f"Eixo ({numero_eixo}) < 225. 'Grafite liso' nao foi encontrado, como esperado." }
         else: return { "regra": "Eixo Bruto/Motriz vs Grafites", "status": "FALHA", "detalhes": f"Eixo ({numero_eixo}) < 225. Erro: 'Grafite liso' foi encontrado, o que nao e permitido." }
 
+# (O restante das funções antigas continua aqui, sem alterações...)
 def checar_regra_exportacao(texto_completo_pdf):
     match_config = re.search(r"Config\.+:\s*(.*)", texto_completo_pdf, re.IGNORECASE | re.DOTALL)
     if not match_config: return { "regra": "Embalagem de Exportacao", "status": "FALHA", "detalhes": "A linha 'Config...........:' nao foi encontrada." }
@@ -230,12 +245,6 @@ def checar_regra_plaqueta_logotipo_atualizada(texto_completo_pdf):
     else:
         return { "regra": "Verificacao da Plaqueta Logotipo", "status": "FALHA", "detalhes": "Nenhuma versao da plaqueta de logotipo ('HIGRA' ou 'HIGRA MINING') foi encontrada." }
 
-def _extrair_tamanho_cabo_flexivel(texto_normalizado):
-    match = re.search(r"cabo flexivel.*?(\d+)\s*mm2", texto_normalizado)
-    if match:
-        return int(match.group(1))
-    return None
-
 def checar_regra_mangueira_pvc(texto_completo_pdf):
     texto_normalizado = _normalizar_texto_completo(texto_completo_pdf)
     tamanho_cabo = _extrair_tamanho_cabo_flexivel(texto_normalizado)
@@ -284,6 +293,75 @@ def checar_regra_tubo_termocontratil(texto_completo_pdf):
     else:
         return {"regra": regra, "status": "FALHA", "detalhes": f"Tubo termocontratil incorreto ou ausente. Para o cabo de {tamanho_cabo}mm2, o esperado era '{tubo_esperado}'. {msg_extra_falha}"}
 
+# --- NOVAS REGRAS DE HOJE ADICIONADAS AQUI ---
+def checar_regra_anel_o_cabo_flexivel(texto_completo_pdf):
+    """Verifica se o Anel O correto está presente, com base no diâmetro específico do cabo."""
+    texto_normalizado = _normalizar_texto_completo(texto_completo_pdf)
+    tamanho_cabo = _extrair_tamanho_cabo_flexivel(texto_normalizado)
+    
+    regra = "Anel O vs. Diametro do Cabo Flexivel"
+
+    if tamanho_cabo is None:
+        return {"regra": regra, "status": "OK", "detalhes": "Nao foi possivel checar a regra pois o 'Cabo Flexivel' nao foi encontrado."}
+
+    mapeamento_anel_o = {
+        6: ["anel o nbr 2-110"],
+        10: ["anel o nbr 2-202"],
+        16: ["anel o nbr 2-202"],
+        25: ["anel o nbr 2-204"],
+        35: ["anel o nbr 2-205"],
+        50: ["anel o nbr 2-206"],
+        70: ["anel o nbr 2-207"],
+        95: ["anel o nbr 2-208", "anel o nbr 2-312"],
+        120: ["anel o nbr 2-312"],
+        150: ["anel o nbr 2-315"],
+        185: ["anel o nbr 2-315"],
+    }
+
+    if tamanho_cabo not in mapeamento_anel_o:
+        return {"regra": regra, "status": "OK", "detalhes": f"Cabo de {tamanho_cabo}mm2 encontrado, mas nao ha uma regra de Anel O especifica para este tamanho."}
+
+    aneis_esperados = mapeamento_anel_o[tamanho_cabo]
+    
+    # Verifica se qualquer um dos anéis esperados (para o caso do 'OU') está no texto
+    if any(anel in texto_normalizado for anel in aneis_esperados):
+        return {"regra": regra, "status": "OK", "detalhes": f"Para o cabo de {tamanho_cabo}mm2, o Anel O correto ('{" ou ".join(aneis_esperados)}') foi encontrado."}
+    else:
+        return {"regra": regra, "status": "FALHA", "detalhes": f"Anel O incorreto ou ausente. Para o cabo de {tamanho_cabo}mm2, o esperado era '{" ou ".join(aneis_esperados)}'."}
+
+def checar_regra_anel_o_cabo_sensor(texto_completo_pdf):
+    """Verifica o Anel O com base na combinação do tipo de Cabo Sensor e o número do Eixo."""
+    texto_normalizado = _normalizar_texto_completo(texto_completo_pdf)
+    numero_eixo = _extrair_numero_eixo(texto_normalizado)
+
+    regra = "Anel O vs. Cabo Sensor e Eixo"
+
+    if numero_eixo is None:
+        return {"regra": regra, "status": "OK", "detalhes": "Nao foi possivel checar a regra pois o 'Eixo Bruto/Motriz' nao foi encontrado."}
+
+    mapeamento_cabo_sensor = [
+        {'cabo': 'cabo sensor shield 12x3', 'eixos': [315], 'anel': 'anel o nbr 2-312'},
+        {'cabo': 'cabo sensor shield 12x3', 'eixos': [200], 'anel': 'anel o nbr 2-208'},
+        {'cabo': 'cabo shield cabex 3x0',  'eixos': [160], 'anel': 'anel o nbr 2-108'},
+        {'cabo': 'cabo shield cabex 3x0',  'eixos': [225, 315], 'anel': 'anel o nbr 2-202'},
+        {'cabo': 'cabo sensor shield 8x3', 'eixos': [225], 'anel': 'anel o nbr 2-207'},
+        {'cabo': 'cabo sensor shield 8x3', 'eixos': [315], 'anel': 'anel o nbr 2-311'},
+    ]
+
+    # Itera sobre o mapa de regras para encontrar uma que se aplique a este PDF
+    for regra_mapa in mapeamento_cabo_sensor:
+        if regra_mapa['cabo'] in texto_normalizado and numero_eixo in regra_mapa['eixos']:
+            # Encontramos a condição que se aplica, agora verificamos a consequência
+            anel_esperado = regra_mapa['anel']
+            if anel_esperado in texto_normalizado:
+                return {"regra": regra, "status": "OK", "detalhes": f"Para a combinacao de '{regra_mapa['cabo']}' e Eixo {numero_eixo}, o Anel O correto ('{anel_esperado}') foi encontrado."}
+            else:
+                return {"regra": regra, "status": "FALHA", "detalhes": f"Para a combinacao de '{regra_mapa['cabo']}' e Eixo {numero_eixo}, o Anel O esperado ('{anel_esperado}') NAO foi encontrado."}
+
+    # Se o loop terminar sem encontrar nenhuma combinação aplicável
+    return {"regra": regra, "status": "OK", "detalhes": "Nenhuma combinacao de Cabo Sensor e Eixo aplicavel a esta regra foi encontrada."}
+
+
 # Criando as regras de fábrica
 checar_regra_plaqueta_sentido_giro = _criar_checador_presenca_obrigatoria("Presenca de Plaqueta Sentido de Giro", "plaqueta sentido de giro")
 checar_regra_plaqueta_identifica = _criar_checador_presenca_obrigatoria("Presenca de Plaqueta de Identificacao", "plaqueta identifica")
@@ -313,6 +391,8 @@ def executar_checklist_completo(texto_pdf):
         checar_regra_sensor_nivel_itens,
         checar_regra_mangueira_pvc,
         checar_regra_tubo_termocontratil,
+        checar_regra_anel_o_cabo_flexivel, # <-- NOVA REGRA ADICIONADA
+        checar_regra_anel_o_cabo_sensor,   # <-- NOVA REGRA ADICIONADA
     ]
     
     resultados_finais = []
