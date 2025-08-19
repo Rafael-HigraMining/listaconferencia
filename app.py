@@ -335,6 +335,30 @@ def checar_regra_anel_o_cabo_sensor(texto_completo_pdf):
                 return {"regra": regra, "status": "FALHA", "detalhes": f"Para a combinacao de '{regra_mapa['cabo']}' e Eixo {numero_eixo}, o Anel O esperado ('{anel_esperado}') NAO foi encontrado."}
     return {"regra": regra, "status": "OK", "detalhes": "Nenhuma combinacao de Cabo Sensor e Eixo aplicavel a esta regra foi encontrada."}
 
+# --- NOVA REGRA ADICIONADA AQUI ---
+def checar_regra_rotor_bomba(texto_completo_pdf):
+    """Verifica se 'Rotor bomba' está presente e, se não, dá um aviso com os materiais da config."""
+    texto_normalizado = _normalizar_texto_completo(texto_completo_pdf)
+    
+    if "rotor bomba" in texto_normalizado:
+        return {"regra": "Presenca do item Rotor Bomba", "status": "OK", "detalhes": "O item 'Rotor bomba' foi encontrado no documento."}
+    else:
+        # Se não encontrou, vamos extrair os materiais da config para a mensagem de erro
+        material_rotor = "Nao identificado"
+        material_difusor = "Nao identificado"
+        
+        match_config = re.search(r"Config\.+:\s*(.*)", texto_completo_pdf, re.IGNORECASE | re.DOTALL)
+        if match_config:
+            string_config = match_config.group(1)
+            valores = string_config.split('#')
+            # Rotor é o 10º (índice 9), Difusor é o 11º (índice 10)
+            if len(valores) > 10:
+                material_rotor = valores[9]
+                material_difusor = valores[10]
+
+        detalhes_falha = f"Item 'Rotor bomba' nao encontrado. Checar cadastro do rotor e do difusor para os materiais (Rotor: {material_rotor}, Difusor: {material_difusor})"
+        return {"regra": "Presenca do item Rotor Bomba", "status": "FALHA", "detalhes": detalhes_falha}
+
 # Criando as regras de fábrica
 checar_regra_plaqueta_sentido_giro = _criar_checador_presenca_obrigatoria("Presenca de Plaqueta Sentido de Giro", "plaqueta sentido de giro")
 checar_regra_plaqueta_identifica = _criar_checador_presenca_obrigatoria("Presenca de Plaqueta de Identificacao", "plaqueta identifica")
@@ -366,6 +390,7 @@ def executar_checklist_completo(texto_pdf):
         checar_regra_tubo_termocontratil,
         checar_regra_anel_o_cabo_flexivel,
         checar_regra_anel_o_cabo_sensor,
+        checar_regra_rotor_bomba, # <-- NOVA REGRA ADICIONADA
     ]
     
     resultados_finais = []
