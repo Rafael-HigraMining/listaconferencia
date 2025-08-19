@@ -428,9 +428,13 @@ def checar_regra_anel_desgaste(texto_completo_pdf):
 
     return {"regra": regra, "status": "OK", "detalhes": f"Rotor e de material especial ({material_rotor}). Todos os {len(linhas_com_anel)} anel(eis) de desgaste estao com o material correto ('inox420')."}
 
-def checar_regra_protetor_selo(texto_completo_pdf):
-    """Para rotores especiais, verifica se o Protetor do Selo contém INOX316."""
-    regra = "Material do Protetor do Selo vs. Rotor"
+# --- SUBSTITUA A FUNÇÃO ANTIGA DO PROTETOR DO SELO POR ESTA VERSÃO ATUALIZADA ---
+def checar_regra_componentes_especiais_selo(texto_completo_pdf):
+    """
+    Para rotores especiais (316/CD4MCUN), verifica se o Protetor do Selo,
+    a Placa de Travamento e a Caixa de Selo contêm 'inox316'.
+    """
+    regra = "Materiais dos Componentes do Selo vs. Rotor"
     material_rotor = _extrair_material_rotor(texto_completo_pdf)
 
     if not material_rotor:
@@ -438,24 +442,42 @@ def checar_regra_protetor_selo(texto_completo_pdf):
 
     gatilhos_especiais = ("ROT INOX316", "ROT AISI316", "ROT CD4MCUN")
     if not material_rotor.startswith(gatilhos_especiais):
-        return {"regra": regra, "status": "OK", "detalhes": f"Rotor nao e de material especial. Regra nao aplicavel."}
+        return {"regra": regra, "status": "OK", "detalhes": f"Rotor ({material_rotor}) nao e de material especial. Regra nao aplicavel."}
 
-    # Se o rotor é especial, a regra se aplica
+    # Se o rotor é especial, a regra se aplica.
     texto_normalizado = _normalizar_texto_completo(texto_completo_pdf)
-    termo_busca = "protetor do selo"
-    termo_busca_alt = "protetor selo"
-    
-    linhas_com_protetor = [linha for linha in texto_completo_pdf.splitlines() if termo_busca in _normalizar_texto_completo(linha) or termo_busca_alt in _normalizar_texto_completo(linha)]
+    erros = []
 
-    if not linhas_com_protetor:
-        return {"regra": regra, "status": "FALHA", "detalhes": f"Rotor e de material especial ({material_rotor}), mas nenhum 'Protetor do Selo' foi encontrado."}
+    # Lista de itens para verificar
+    itens_a_checar = [
+        {'nome': 'Protetor do Selo', 'termos': ['protetor do selo', 'protetor selo'], 'material_esperado': 'inox316'},
+        {'nome': 'Placa de Travamento', 'termos': ['placa de travamento', 'placa travamento'], 'material_esperado': 'inox316'},
+        {'nome': 'Caixa de Selo', 'termos': ['caixa de selo'], 'material_esperado': 'inox316'}
+    ]
 
-    for i, linha in enumerate(linhas_com_protetor):
-        if "inox316" not in _normalizar_texto_completo(linha):
-            return {"regra": regra, "status": "FALHA", "detalhes": f"Rotor e de material especial ({material_rotor}). O 'Protetor do Selo' na linha {i+1} deveria conter 'inox316', mas nao foi encontrado."}
+    for item in itens_a_checar:
+        # Encontra todas as linhas que contêm o item
+        linhas_encontradas = [
+            linha for linha in texto_completo_pdf.splitlines()
+            if any(termo in _normalizar_texto_completo(linha) for termo in item['termos'])
+        ]
 
-    return {"regra": regra, "status": "OK", "detalhes": f"Rotor e de material especial ({material_rotor}). Todos os {len(linhas_com_protetor)} protetor(es) de selo estao com o material correto ('inox316')."}
+        if not linhas_encontradas:
+            erros.append(f"Item obrigatorio '{item['nome']}' nao foi encontrado.")
+            continue # Pula para o próximo item da lista
 
+        # Se encontrou o item, verifica o material em cada linha
+        for i, linha in enumerate(linhas_encontradas):
+            if item['material_esperado'] not in _normalizar_texto_completo(linha):
+                erros.append(f"O item '{item['nome']}' (linha {i+1}) nao contem o material esperado '{item['material_esperado']}'.")
+
+    # Reporta o resultado final
+    if not erros:
+        return {"regra": regra, "status": "OK", "detalhes": f"Rotor e de material especial. Todos os componentes do selo (Protetor, Placa de Travamento, Caixa de Selo) estao com o material correto ('inox316')."}
+    else:
+        detalhes_falha = f"Rotor e de material especial ({material_rotor}), mas foram encontrados os seguintes problemas: {'; '.join(erros)}"
+        return {"regra": regra, "status": "FALHA", "detalhes": detalhes_falha}
+        
 # Criando as regras de fábrica
 checar_regra_plaqueta_sentido_giro = _criar_checador_presenca_obrigatoria("Presenca de Plaqueta Sentido de Giro", "plaqueta sentido de giro")
 checar_regra_plaqueta_identifica = _criar_checador_presenca_obrigatoria("Presenca de Plaqueta de Identificacao", "plaqueta identifica")
@@ -491,7 +513,7 @@ def executar_checklist_completo(texto_pdf):
         # Adicionando as novas regras de hoje
         checar_regra_selo_mecanico,
         checar_regra_anel_desgaste,
-        checar_regra_protetor_selo,
+        checar_regra_componentes_especiais_selo,
     ]
     
     resultados_finais = []
@@ -540,4 +562,5 @@ if uploaded_file is not None:
                     with st.expander(f"❌ {res['regra']}: FALHA", expanded=True):
                         st.error(f"**Status:** {res['status']}")
                         st.warning(f"**Detalhes:** {res['detalhes']}")
+
 
