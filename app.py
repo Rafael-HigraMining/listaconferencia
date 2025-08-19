@@ -18,9 +18,14 @@ def _normalizar_texto_completo(texto: str) -> str:
     texto_normalizado = re.sub(r'\s+', ' ', texto_sem_acentos)
     return texto_normalizado
 
-# --- NOVOS AJUDANTES PARA EXTRAÇÃO DE DADOS REPETIDOS ---
+# --- SUBSTITUA A FUNÇÃO AJUDANTE ANTIGA POR ESTA VERSÃO ATUALIZADA ---
 def _extrair_tamanho_cabo_flexivel(texto_normalizado):
-    match = re.search(r"cabo flexivel.*?(\d+)\s*mm2", texto_normalizado)
+    """
+    Busca pelo cabo flexível no texto e extrai o seu diâmetro.
+    VERSÃO ATUALIZADA: Aceita tanto 'mm2' quanto 'mm²'.
+    """
+    # A mudança está no final da regex: [2²] aceita o caractere '2' OU o caractere '²'.
+    match = re.search(r"cabo flexivel.*?(\d+)\s*mm[2²]", texto_normalizado)
     if match:
         return int(match.group(1))
     return None
@@ -441,3 +446,4 @@ if uploaded_file is not None:
                     with st.expander(f"❌ {res['regra']}: FALHA", expanded=True):
                         st.error(f"**Status:** {res['status']}")
                         st.warning(f"**Detalhes:** {res['detalhes']}")
+
