@@ -428,7 +428,8 @@ def checar_regra_anel_desgaste(texto_completo_pdf):
 
     return {"regra": regra, "status": "OK", "detalhes": f"Rotor e de material especial ({material_rotor}). Todos os {len(linhas_com_anel)} anel(eis) de desgaste estao com o material correto ('inox420')."}
 
-# --- SUBSTITUA A FUNÇÃO ANTIGA DO PROTETOR DO SELO POR ESTA VERSÃO ATUALIZADA ---
+
+
 def checar_regra_componentes_especiais_selo(texto_completo_pdf):
     """
     Para rotores especiais (316/CD4MCUN), verifica se o Protetor do Selo,
@@ -448,11 +449,11 @@ def checar_regra_componentes_especiais_selo(texto_completo_pdf):
     texto_normalizado = _normalizar_texto_completo(texto_completo_pdf)
     erros = []
 
-    # Lista de itens para verificar
+    # --- A MUDANÇA ESTÁ AQUI: Adicionando 'caixa selo' à lista de termos ---
     itens_a_checar = [
         {'nome': 'Protetor do Selo', 'termos': ['protetor do selo', 'protetor selo'], 'material_esperado': 'inox316'},
         {'nome': 'Placa de Travamento', 'termos': ['placa de travamento', 'placa travamento'], 'material_esperado': 'inox316'},
-        {'nome': 'Caixa de Selo', 'termos': ['caixa de selo'], 'material_esperado': 'inox316'}
+        {'nome': 'Caixa de Selo', 'termos': ['caixa de selo', 'caixa selo'], 'material_esperado': 'inox316'}
     ]
 
     for item in itens_a_checar:
@@ -469,7 +470,7 @@ def checar_regra_componentes_especiais_selo(texto_completo_pdf):
         # Se encontrou o item, verifica o material em cada linha
         for i, linha in enumerate(linhas_encontradas):
             if item['material_esperado'] not in _normalizar_texto_completo(linha):
-                erros.append(f"O item '{item['nome']}' (linha {i+1}) nao contem o material esperado '{item['material_esperado']}'.")
+                erros.append(f"O item '{item['nome']}' (encontrado na linha {i+1} do PDF) nao contem o material esperado '{item['material_esperado']}'.")
 
     # Reporta o resultado final
     if not erros:
@@ -562,5 +563,6 @@ if uploaded_file is not None:
                     with st.expander(f"❌ {res['regra']}: FALHA", expanded=True):
                         st.error(f"**Status:** {res['status']}")
                         st.warning(f"**Detalhes:** {res['detalhes']}")
+
 
 
