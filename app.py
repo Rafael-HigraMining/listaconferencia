@@ -165,27 +165,44 @@ def checar_regra_chassi_modelos(texto_completo_pdf):
         else: return {"regra": "Verificacao de Chassi", "status": "FALHA", "detalhes": f"Gatilho '{gatilho_encontrado}' encontrado na config, mas o termo 'chassi' NÃO foi encontrado."}
     else: return {"regra": "Verificacao de Chassi", "status": "OK", "detalhes": "Nenhum modelo ou condicao aplicavel para esta regra foi encontrado. Regra nao aplicavel."}
 
+# --- SUBSTITUA A FUNÇÃO ANTIGA DO BUJÃO POR ESTA VERSÃO ATUALIZADA ---
 def checar_regra_bujao_modificada(texto_completo_pdf):
+    """
+    Busca por 'BUJAO BSP 1"' e, se o rotor for inox316 ou aisi316,
+    valida se 'inox316' está na mesma linha.
+    VERSÃO ATUALIZADA: Aceita ROT INOX316 e ROT AISI316.
+    """
     inox_check_requerido = False
     match_config = re.search(r"Config\.+:\s*(.*)", texto_completo_pdf, re.IGNORECASE | re.DOTALL)
     if match_config:
         string_config = match_config.group(1)
         valores = string_config.split('#')
-        if len(valores) > 9 and valores[9].upper() == "ROT INOX316": inox_check_requerido = True
+        
+        # --- A MUDANÇA ESTÁ AQUI ---
+        # Agora verificamos se o campo do rotor COMEÇA COM um dos gatilhos.
+        if len(valores) > 9:
+            rotor_material = valores[9].upper()
+            gatilhos_inox = ("ROT INOX316", "ROT AISI316")
+            if rotor_material.startswith(gatilhos_inox):
+                inox_check_requerido = True
+
+    # O resto da função permanece igual
     termo_bujao = 'bujao bsp 1"'
     linhas_com_bujao = []
     for i, linha in enumerate(texto_completo_pdf.splitlines()):
         if termo_bujao in linha.lower():
             linhas_com_bujao.append({'texto': linha, 'num_linha': i + 1})
+
     if not linhas_com_bujao:
         return {"regra": "Verificacao de Bujao", "status": "FALHA", "detalhes": f"O termo obrigatorio '{termo_bujao}' NAO foi encontrado no documento."}
+
     if inox_check_requerido:
         for linha_info in linhas_com_bujao:
             if "inox316" not in linha_info['texto'].lower():
-                return { "regra": "Verificacao de Bujao", "status": "FALHA", "detalhes": f"Rotor e INOX316, mas a linha {linha_info['num_linha']} contem '{termo_bujao}' SEM a especificacao 'inox316'." }
-        return { "regra": "Verificacao de Bujao", "status": "OK", "detalhes": f"Rotor e INOX316. Encontrado(s) {len(linhas_com_bujao)} bujao(oes) e todos contem 'inox316' como esperado." }
+                return { "regra": "Verificacao de Bujao", "status": "FALHA", "detalhes": f"Rotor e INOX316/AISI316, mas a linha {linha_info['num_linha']} contem '{termo_bujao}' SEM a especificacao 'inox316'." }
+        return { "regra": "Verificacao de Bujao", "status": "OK", "detalhes": f"Rotor e INOX316/AISI316. Encontrado(s) {len(linhas_com_bujao)} bujao(oes) e todos contem 'inox316' como esperado." }
     else:
-        return { "regra": "Verificacao de Bujao", "status": "OK", "detalhes": f"Rotor nao e INOX316. Encontrado(s) {len(linhas_com_bujao)} bujao(oes) no documento." }
+        return { "regra": "Verificacao de Bujao", "status": "OK", "detalhes": f"Rotor nao e de INOX316/AISI316. Encontrado(s) {len(linhas_com_bujao)} bujao(oes) no documento." }
 
 def checar_regra_tubo_termocontratil_potencia(texto_completo_pdf):
     match_config = re.search(r"Config\.+:\s*(.*)", texto_completo_pdf, re.IGNORECASE | re.DOTALL)
@@ -446,4 +463,5 @@ if uploaded_file is not None:
                     with st.expander(f"❌ {res['regra']}: FALHA", expanded=True):
                         st.error(f"**Status:** {res['status']}")
                         st.warning(f"**Detalhes:** {res['detalhes']}")
+
 
