@@ -29,6 +29,17 @@ def _extrair_numero_eixo(texto_normalizado):
     if match:
         return int(match.group(2))
     return None
+    
+def _extrair_material_rotor(texto_completo_pdf):
+    """Extrai o material do rotor a partir da string de configuração."""
+    match_config = re.search(r"Config\.+:\s*(.*)", texto_completo_pdf, re.IGNORECASE | re.DOTALL)
+    if match_config:
+        string_config = match_config.group(1)
+        valores = string_config.split('#')
+        # Rotor é o 10º item (índice 9)
+        if len(valores) > 9:
+            return valores[9].upper()
+    return None
 
 def checar_regra_eixo_bruto(texto_completo_pdf):
     texto_normalizado = _normalizar_texto_completo(texto_completo_pdf)
@@ -156,30 +167,34 @@ def checar_regra_chassi_modelos(texto_completo_pdf):
     else: return {"regra": "Verificacao de Chassi", "status": "OK", "detalhes": "Nenhum modelo ou condicao aplicavel para esta regra foi encontrado. Regra nao aplicavel."}
 
 def checar_regra_bujao_modificada(texto_completo_pdf):
+    """
+    Busca por 'BUJAO BSP 1"' e, se o rotor for inox316/aisi316/cd4mcun,
+    valida se 'inox316' está na mesma linha.
+    """
     inox_check_requerido = False
-    match_config = re.search(r"Config\.+:\s*(.*)", texto_completo_pdf, re.IGNORECASE | re.DOTALL)
-    if match_config:
-        string_config = match_config.group(1)
-        valores = string_config.split('#')
-        if len(valores) > 9:
-            rotor_material = valores[9].upper()
-            gatilhos_inox = ("ROT INOX316", "ROT AISI316")
-            if rotor_material.startswith(gatilhos_inox):
-                inox_check_requerido = True
+    material_rotor = _extrair_material_rotor(texto_completo_pdf)
+    
+    if material_rotor:
+        gatilhos_inox = ("ROT INOX316", "ROT AISI316", "ROT CD4MCUN")
+        if material_rotor.startswith(gatilhos_inox):
+            inox_check_requerido = True
+
     termo_bujao = 'bujao bsp 1"'
     linhas_com_bujao = []
     for i, linha in enumerate(texto_completo_pdf.splitlines()):
         if termo_bujao in linha.lower():
             linhas_com_bujao.append({'texto': linha, 'num_linha': i + 1})
+
     if not linhas_com_bujao:
         return {"regra": "Verificacao de Bujao", "status": "FALHA", "detalhes": f"O termo obrigatorio '{termo_bujao}' NAO foi encontrado no documento."}
+
     if inox_check_requerido:
         for linha_info in linhas_com_bujao:
             if "inox316" not in linha_info['texto'].lower():
-                return { "regra": "Verificacao de Bujao", "status": "FALHA", "detalhes": f"Rotor e INOX316/AISI316, mas a linha {linha_info['num_linha']} contem '{termo_bujao}' SEM a especificacao 'inox316'." }
-        return { "regra": "Verificacao de Bujao", "status": "OK", "detalhes": f"Rotor e INOX316/AISI316. Encontrado(s) {len(linhas_com_bujao)} bujao(oes) e todos contem 'inox316' como esperado." }
+                return { "regra": "Verificacao de Bujao", "status": "FALHA", "detalhes": f"Rotor e de material especial ({material_rotor}), mas a linha {linha_info['num_linha']} contem '{termo_bujao}' SEM a especificacao 'inox316'." }
+        return { "regra": "Verificacao de Bujao", "status": "OK", "detalhes": f"Rotor e de material especial ({material_rotor}). Encontrado(s) {len(linhas_com_bujao)} bujao(oes) e todos contem 'inox316' como esperado." }
     else:
-        return { "regra": "Verificacao de Bujao", "status": "OK", "detalhes": f"Rotor nao e de INOX316/AISI316. Encontrado(s) {len(linhas_com_bujao)} bujao(oes) no documento." }
+        return { "regra": "Verificacao de Bujao", "status": "OK", "detalhes": f"Rotor nao e de material especial. Encontrado(s) {len(linhas_com_bujao)} bujao(oes) no documento." }
 
 def checar_regra_tubo_termocontratil_potencia(texto_completo_pdf):
     match_config = re.search(r"Config\.+:\s*(.*)", texto_completo_pdf, re.IGNORECASE | re.DOTALL)
@@ -359,6 +374,88 @@ def checar_regra_rotor_bomba(texto_completo_pdf):
         detalhes_falha = f"Item 'Rotor bomba' nao encontrado. Checar cadastro do rotor e do difusor para os materiais (Rotor: {material_rotor}, Difusor: {material_difusor})"
         return {"regra": "Presenca do item Rotor Bomba", "status": "FALHA", "detalhes": detalhes_falha}
 
+# --- NOVAS REGRAS ADICIONADAS AQUI ---
+def checar_regra_selo_mecanico(texto_completo_pdf):
+    """Verifica o material do Selo Mecanico com base no material do Rotor."""
+    regra = "Material do Selo Mecanico vs. Rotor"
+    material_rotor = _extrair_material_rotor(texto_completo_pdf)
+    
+    if not material_rotor:
+        return {"regra": regra, "status": "OK", "detalhes": "Nao foi possivel identificar o material do rotor na config para validar a regra."}
+
+    texto_normalizado = _normalizar_texto_completo(texto_completo_pdf)
+    
+    # Encontra todas as linhas que contêm "selo mecanico"
+    linhas_com_selo = [linha for linha in texto_completo_pdf.splitlines() if "selo mecanico" in _normalizar_texto_completo(linha)]
+
+    if not linhas_com_selo:
+        return {"regra": regra, "status": "FALHA", "detalhes": "Nenhum item 'Selo Mecanico' foi encontrado no documento."}
+
+    # Define o material esperado para o selo
+    gatilhos_especiais = ("ROT INOX316", "ROT AISI316", "ROT CD4MCUN")
+    material_selo_esperado = "inox316" if material_rotor.startswith(gatilhos_especiais) else "inox304"
+
+    # Verifica cada linha encontrada
+    for i, linha in enumerate(linhas_com_selo):
+        linha_normalizada = _normalizar_texto_completo(linha)
+        if material_selo_esperado not in linha_normalizada:
+            return {"regra": regra, "status": "FALHA", "detalhes": f"Material do Rotor e '{material_rotor}'. O Selo Mecanico na linha {i+1} deveria conter '{material_selo_esperado}', mas nao foi encontrado."}
+
+    return {"regra": regra, "status": "OK", "detalhes": f"Material do Rotor e '{material_rotor}'. Todos os {len(linhas_com_selo)} selo(s) mecanico(s) estao com o material correto ('{material_selo_esperado}')."}
+
+def checar_regra_anel_desgaste(texto_completo_pdf):
+    """Para rotores especiais, verifica se o Anel de Desgaste contém INOX420."""
+    regra = "Material do Anel de Desgaste vs. Rotor"
+    material_rotor = _extrair_material_rotor(texto_completo_pdf)
+
+    if not material_rotor:
+        return {"regra": regra, "status": "OK", "detalhes": "Nao foi possivel identificar o material do rotor na config para validar a regra."}
+
+    gatilhos_especiais = ("ROT INOX316", "ROT AISI316", "ROT CD4MCUN")
+    if not material_rotor.startswith(gatilhos_especiais):
+        return {"regra": regra, "status": "OK", "detalhes": f"Rotor nao e de material especial. Regra nao aplicavel."}
+
+    # Se o rotor é especial, a regra se aplica
+    texto_normalizado = _normalizar_texto_completo(texto_completo_pdf)
+    linhas_com_anel = [linha for linha in texto_completo_pdf.splitlines() if "anel desgaste" in _normalizar_texto_completo(linha)]
+
+    if not linhas_com_anel:
+        return {"regra": regra, "status": "FALHA", "detalhes": f"Rotor e de material especial ({material_rotor}), mas nenhum 'Anel Desgaste' foi encontrado."}
+
+    for i, linha in enumerate(linhas_com_anel):
+        if "inox420" not in _normalizar_texto_completo(linha):
+            return {"regra": regra, "status": "FALHA", "detalhes": f"Rotor e de material especial ({material_rotor}). O 'Anel Desgaste' na linha {i+1} deveria conter 'inox420', mas nao foi encontrado."}
+
+    return {"regra": regra, "status": "OK", "detalhes": f"Rotor e de material especial ({material_rotor}). Todos os {len(linhas_com_anel)} anel(eis) de desgaste estao com o material correto ('inox420')."}
+
+def checar_regra_protetor_selo(texto_completo_pdf):
+    """Para rotores especiais, verifica se o Protetor do Selo contém INOX316."""
+    regra = "Material do Protetor do Selo vs. Rotor"
+    material_rotor = _extrair_material_rotor(texto_completo_pdf)
+
+    if not material_rotor:
+        return {"regra": regra, "status": "OK", "detalhes": "Nao foi possivel identificar o material do rotor na config para validar a regra."}
+
+    gatilhos_especiais = ("ROT INOX316", "ROT AISI316", "ROT CD4MCUN")
+    if not material_rotor.startswith(gatilhos_especiais):
+        return {"regra": regra, "status": "OK", "detalhes": f"Rotor nao e de material especial. Regra nao aplicavel."}
+
+    # Se o rotor é especial, a regra se aplica
+    texto_normalizado = _normalizar_texto_completo(texto_completo_pdf)
+    termo_busca = "protetor do selo"
+    termo_busca_alt = "protetor selo"
+    
+    linhas_com_protetor = [linha for linha in texto_completo_pdf.splitlines() if termo_busca in _normalizar_texto_completo(linha) or termo_busca_alt in _normalizar_texto_completo(linha)]
+
+    if not linhas_com_protetor:
+        return {"regra": regra, "status": "FALHA", "detalhes": f"Rotor e de material especial ({material_rotor}), mas nenhum 'Protetor do Selo' foi encontrado."}
+
+    for i, linha in enumerate(linhas_com_protetor):
+        if "inox316" not in _normalizar_texto_completo(linha):
+            return {"regra": regra, "status": "FALHA", "detalhes": f"Rotor e de material especial ({material_rotor}). O 'Protetor do Selo' na linha {i+1} deveria conter 'inox316', mas nao foi encontrado."}
+
+    return {"regra": regra, "status": "OK", "detalhes": f"Rotor e de material especial ({material_rotor}). Todos os {len(linhas_com_protetor)} protetor(es) de selo estao com o material correto ('inox316')."}
+
 # Criando as regras de fábrica
 checar_regra_plaqueta_sentido_giro = _criar_checador_presenca_obrigatoria("Presenca de Plaqueta Sentido de Giro", "plaqueta sentido de giro")
 checar_regra_plaqueta_identifica = _criar_checador_presenca_obrigatoria("Presenca de Plaqueta de Identificacao", "plaqueta identifica")
@@ -390,7 +487,11 @@ def executar_checklist_completo(texto_pdf):
         checar_regra_tubo_termocontratil,
         checar_regra_anel_o_cabo_flexivel,
         checar_regra_anel_o_cabo_sensor,
-        checar_regra_rotor_bomba, # <-- NOVA REGRA ADICIONADA
+        checar_regra_rotor_bomba,
+        # Adicionando as novas regras de hoje
+        checar_regra_selo_mecanico,
+        checar_regra_anel_desgaste,
+        checar_regra_protetor_selo,
     ]
     
     resultados_finais = []
@@ -439,3 +540,4 @@ if uploaded_file is not None:
                     with st.expander(f"❌ {res['regra']}: FALHA", expanded=True):
                         st.error(f"**Status:** {res['status']}")
                         st.warning(f"**Detalhes:** {res['detalhes']}")
+
