@@ -374,34 +374,46 @@ def checar_regra_rotor_bomba(texto_completo_pdf):
         detalhes_falha = f"Item 'Rotor bomba' nao encontrado. Checar cadastro do rotor e do difusor para os materiais (Rotor: {material_rotor}, Difusor: {material_difusor})"
         return {"regra": "Presenca do item Rotor Bomba", "status": "FALHA", "detalhes": detalhes_falha}
 
-# --- NOVAS REGRAS ADICIONADAS AQUI ---
+# --- SUBSTITUA A FUNÇÃO ANTIGA DO SELO MECÂNICO POR ESTA VERSÃO ATUALIZADA ---
 def checar_regra_selo_mecanico(texto_completo_pdf):
-    """Verifica o material do Selo Mecanico com base no material do Rotor."""
+    """
+    Verifica o material do Selo Mecanico com base no material do Rotor.
+    VERSÃO ATUALIZADA: Procura o material na linha do selo e na linha seguinte.
+    """
     regra = "Material do Selo Mecanico vs. Rotor"
     material_rotor = _extrair_material_rotor(texto_completo_pdf)
     
     if not material_rotor:
         return {"regra": regra, "status": "OK", "detalhes": "Nao foi possivel identificar o material do rotor na config para validar a regra."}
 
-    texto_normalizado = _normalizar_texto_completo(texto_completo_pdf)
-    
-    # Encontra todas as linhas que contêm "selo mecanico"
-    linhas_com_selo = [linha for linha in texto_completo_pdf.splitlines() if "selo mecanico" in _normalizar_texto_completo(linha)]
-
-    if not linhas_com_selo:
-        return {"regra": regra, "status": "FALHA", "detalhes": "Nenhum item 'Selo Mecanico' foi encontrado no documento."}
-
     # Define o material esperado para o selo
     gatilhos_especiais = ("ROT INOX316", "ROT AISI316", "ROT CD4MCUN")
     material_selo_esperado = "inox316" if material_rotor.startswith(gatilhos_especiais) else "inox304"
 
-    # Verifica cada linha encontrada
-    for i, linha in enumerate(linhas_com_selo):
-        linha_normalizada = _normalizar_texto_completo(linha)
-        if material_selo_esperado not in linha_normalizada:
-            return {"regra": regra, "status": "FALHA", "detalhes": f"Material do Rotor e '{material_rotor}'. O Selo Mecanico na linha {i+1} deveria conter '{material_selo_esperado}', mas nao foi encontrado."}
+    # Encontra todas as linhas que contêm "selo mecanico"
+    todas_as_linhas = texto_completo_pdf.splitlines()
+    indices_selos_encontrados = [
+        i for i, linha in enumerate(todas_as_linhas) 
+        if "selo mecanico" in _normalizar_texto_completo(linha)
+    ]
 
-    return {"regra": regra, "status": "OK", "detalhes": f"Material do Rotor e '{material_rotor}'. Todos os {len(linhas_com_selo)} selo(s) mecanico(s) estao com o material correto ('{material_selo_esperado}')."}
+    if not indices_selos_encontrados:
+        return {"regra": regra, "status": "FALHA", "detalhes": "Nenhum item 'Selo Mecanico' foi encontrado no documento."}
+
+    # Verifica cada selo encontrado
+    for i in indices_selos_encontrados:
+        # Cria um "bloco de busca" com a linha atual e a próxima
+        linha_atual = _normalizar_texto_completo(todas_as_linhas[i])
+        linha_seguinte = ""
+        if (i + 1) < len(todas_as_linhas):
+            linha_seguinte = _normalizar_texto_completo(todas_as_linhas[i+1])
+        
+        bloco_de_busca = linha_atual + " " + linha_seguinte
+
+        if material_selo_esperado not in bloco_de_busca:
+            return {"regra": regra, "status": "FALHA", "detalhes": f"Material do Rotor e '{material_rotor}'. O Selo Mecanico (linha {i+1} do PDF) deveria conter '{material_selo_esperado}', mas nao foi encontrado nas linhas adjacentes."}
+
+    return {"regra": regra, "status": "OK", "detalhes": f"Material do Rotor e '{material_rotor}'. Todos os {len(indices_selos_encontrados)} selo(s) mecanico(s) estao com o material correto ('{material_selo_esperado}')."}
 
 def checar_regra_anel_desgaste(texto_completo_pdf):
     """Para rotores especiais, verifica se o Anel de Desgaste contém INOX420."""
@@ -563,6 +575,7 @@ if uploaded_file is not None:
                     with st.expander(f"❌ {res['regra']}: FALHA", expanded=True):
                         st.error(f"**Status:** {res['status']}")
                         st.warning(f"**Detalhes:** {res['detalhes']}")
+
 
 
 
