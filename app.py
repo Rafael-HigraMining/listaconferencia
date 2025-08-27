@@ -229,7 +229,7 @@ def checar_regra_tubo_termocontratil_potencia(texto_completo_pdf):
         else:
             return {"regra": regra, "status": "OK", "detalhes": f"Potencia ({potencia}CV) > 75CV e o termo proibido nao foi encontrado, como esperado."}
     else: # Potencia <= 75
-        return {"regra": regra, "status": "OK", "detalhes": f"Potencia ({potencia}CV) <= 75CV. A regra de restricao nao se aplica."}"}
+        return {"regra": regra, "status": "OK", "detalhes": f"Potencia ({potencia}CV) <= 75CV. A regra de restricao nao se aplica."}
 
 def checar_regra_contagem_tubo_termo(texto_completo_pdf):
     texto_normalizado = _normalizar_texto_completo(texto_completo_pdf)
@@ -625,6 +625,7 @@ if uploaded_file is not None:
                     with st.expander(f"❌ {res['regra']}: FALHA", expanded=True):
                         st.error(f"**Status:** {res['status']}")
                         st.warning(f"**Detalhes:** {res['detalhes']}")
+
 
 
 
