@@ -539,7 +539,7 @@ def checar_regra_potencia_cabo_flexivel(texto_completo_pdf):
     if diametro_correto_encontrado:
         return {"regra": regra, "status": "OK", "detalhes": f"Potencia e de {potencia}CV. O 'Cabo Flexivel' com o diametro correto (95mm²) foi encontrado."}
     else:
-        return {"regra": regra, "status": "FALHA", "detalhes": f"Potencia e de {potencia}CV, mas o 'Cabo Flexivel' com diametro de 95mm² NAO foi encontrado."}"}
+        return {"regra": regra, "status": "FALHA", "detalhes": f"Potencia e de {potencia}CV, mas o 'Cabo Flexivel' com diametro de 95mm² NAO foi encontrado."}
         
 # Criando as regras de fábrica
 checar_regra_plaqueta_sentido_giro = _criar_checador_presenca_obrigatoria("Presenca de Plaqueta Sentido de Giro", "plaqueta sentido de giro")
@@ -626,6 +626,7 @@ if uploaded_file is not None:
                     with st.expander(f"❌ {res['regra']}: FALHA", expanded=True):
                         st.error(f"**Status:** {res['status']}")
                         st.warning(f"**Detalhes:** {res['detalhes']}")
+
 
 
 
