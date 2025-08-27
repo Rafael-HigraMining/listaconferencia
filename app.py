@@ -40,6 +40,23 @@ def _extrair_material_rotor(texto_completo_pdf):
         if len(valores) > 9:
             return valores[9].upper()
     return None
+    
+def _extrair_potencia_config(texto_completo_pdf):
+    """Extrai o valor numérico da potência a partir da string de configuração."""
+    match_config = re.search(r"Config\.+:\s*(.*)", texto_completo_pdf, re.IGNORECASE | re.DOTALL)
+    if not match_config:
+        return None
+    
+    string_config = match_config.group(1)
+    valores = string_config.split('#')
+    
+    # Potência é o 6º item (índice 5)
+    if len(valores) > 5:
+        potencia_str = valores[5]
+        match_potencia = re.search(r'(\d+)', potencia_str)
+        if match_potencia:
+            return int(match_potencia.group(1))
+    return None
 
 def checar_regra_eixo_bruto(texto_completo_pdf):
     texto_normalizado = _normalizar_texto_completo(texto_completo_pdf)
@@ -197,26 +214,22 @@ def checar_regra_bujao_modificada(texto_completo_pdf):
         return { "regra": "Verificacao de Bujao", "status": "OK", "detalhes": f"Rotor nao e de material especial. Encontrado(s) {len(linhas_com_bujao)} bujao(oes) no documento." }
 
 def checar_regra_tubo_termocontratil_potencia(texto_completo_pdf):
-    match_config = re.search(r"Config\.+:\s*(.*)", texto_completo_pdf, re.IGNORECASE | re.DOTALL)
-    if not match_config: return {"regra": "Tubo Termocontratil vs Potencia", "status": "FALHA", "detalhes": "A linha 'Config...........:' nao foi encontrada."}
-    string_config = match_config.group(1)
-    valores = string_config.split('#')
-    if len(valores) < 6:
-        return {"regra": "Tubo Termocontratil vs Potencia", "status": "FALHA", "detalhes": "Nao foi possivel encontrar o campo de potencia na string de configuracao."}
-    potencia_str = valores[5]
-    match_potencia = re.search(r'(\d+)', potencia_str)
-    if not match_potencia:
-        return {"regra": "Tubo Termocontratil vs Potencia", "status": "FALHA", "detalhes": f"Nao foi possivel extrair um valor numerico do campo de potencia ('{potencia_str}')."}
-    potencia = int(match_potencia.group(1))
+    """Verifica a presença de 'TUBO TERMOCONTRATIL 1/2"' com base na potência."""
+    potencia = _extrair_potencia_config(texto_completo_pdf)
+    regra = "Tubo Termocontratil vs Potencia"
+
+    if potencia is None:
+        return {"regra": regra, "status": "FALHA", "detalhes": "Nao foi possivel extrair a potencia da string de configuracao."}
+
     if potencia > 75:
         texto_normalizado = _normalizar_texto_completo(texto_completo_pdf)
         termo_proibido = 'tubo termocontratil 1/2"'
         if termo_proibido in texto_normalizado:
-            return {"regra": "Tubo Termocontratil vs Potencia", "status": "FALHA", "detalhes": f"Potencia ({potencia}CV) > 75CV e o termo proibido '{termo_proibido}' foi encontrado."}
+            return {"regra": regra, "status": "FALHA", "detalhes": f"Potencia ({potencia}CV) > 75CV e o termo proibido '{termo_proibido}' foi encontrado."}
         else:
-            return {"regra": "Tubo Termocontratil vs Potencia", "status": "OK", "detalhes": f"Potencia ({potencia}CV) > 75CV e o termo proibido nao foi encontrado, como esperado."}
+            return {"regra": regra, "status": "OK", "detalhes": f"Potencia ({potencia}CV) > 75CV e o termo proibido nao foi encontrado, como esperado."}
     else: # Potencia <= 75
-        return {"regra": "Tubo Termocontratil vs Potencia", "status": "OK", "detalhes": f"Potencia ({potencia}CV) <= 75CV. A regra de restricao nao se aplica."}
+        return {"regra": regra, "status": "OK", "detalhes": f"Potencia ({potencia}CV) <= 75CV. A regra de restricao nao se aplica."}"}
 
 def checar_regra_contagem_tubo_termo(texto_completo_pdf):
     texto_normalizado = _normalizar_texto_completo(texto_completo_pdf)
@@ -490,6 +503,42 @@ def checar_regra_componentes_especiais_selo(texto_completo_pdf):
     else:
         detalhes_falha = f"Rotor e de material especial ({material_rotor}), mas foram encontrados os seguintes problemas: {'; '.join(erros)}"
         return {"regra": regra, "status": "FALHA", "detalhes": detalhes_falha}
+def checar_regra_potencia_cabo_flexivel(texto_completo_pdf):
+    """Para potências >= 300CV, verifica se o cabo flexível é de 90mm²."""
+    potencia = _extrair_potencia_config(texto_completo_pdf)
+    regra = "Cabo Flexivel vs. Potencia"
+
+    if potencia is None:
+        return {"regra": regra, "status": "FALHA", "detalhes": "Nao foi possivel extrair a potencia da string de configuracao."}
+
+    # A regra só se aplica para potências >= 300
+    if potencia < 300:
+        return {"regra": regra, "status": "OK", "detalhes": f"Potencia ({potencia}CV) < 300CV. Regra nao aplicavel."}
+
+    # Se a potência é >= 300, a verificação é necessária
+    texto_normalizado = _normalizar_texto_completo(texto_completo_pdf)
+    
+    # Encontra todas as linhas que contêm "cabo flexivel"
+    linhas_com_cabo = [
+        linha for linha in texto_completo_pdf.splitlines() 
+        if "cabo flexivel" in _normalizar_texto_completo(linha)
+    ]
+
+    if not linhas_com_cabo:
+        return {"regra": regra, "status": "FALHA", "detalhes": f"Potencia e de {potencia}CV, mas nenhum item 'Cabo Flexivel' foi encontrado."}
+
+    # Verifica se alguma das linhas encontradas tem o diâmetro correto
+    diametro_correto_encontrado = False
+    for linha in linhas_com_cabo:
+        # Usamos a mesma regex robusta para encontrar '90mm²' ou '90mm2'
+        if re.search(r"90\s*mm[2²]", _normalizar_texto_completo(linha)):
+            diametro_correto_encontrado = True
+            break # Encontrou, não precisa checar mais
+
+    if diametro_correto_encontrado:
+        return {"regra": regra, "status": "OK", "detalhes": f"Potencia e de {potencia}CV. O 'Cabo Flexivel' com o diametro correto (90mm²) foi encontrado."}
+    else:
+        return {"regra": regra, "status": "FALHA", "detalhes": f"Potencia e de {potencia}CV, mas o 'Cabo Flexivel' com diametro de 90mm² NAO foi encontrado."}
         
 # Criando as regras de fábrica
 checar_regra_plaqueta_sentido_giro = _criar_checador_presenca_obrigatoria("Presenca de Plaqueta Sentido de Giro", "plaqueta sentido de giro")
@@ -527,6 +576,7 @@ def executar_checklist_completo(texto_pdf):
         checar_regra_selo_mecanico,
         checar_regra_anel_desgaste,
         checar_regra_componentes_especiais_selo,
+        checar_regra_potencia_cabo_flexivel,
     ]
     
     resultados_finais = []
@@ -575,6 +625,7 @@ if uploaded_file is not None:
                     with st.expander(f"❌ {res['regra']}: FALHA", expanded=True):
                         st.error(f"**Status:** {res['status']}")
                         st.warning(f"**Detalhes:** {res['detalhes']}")
+
 
 
 
