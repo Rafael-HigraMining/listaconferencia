@@ -58,24 +58,34 @@ def _extrair_potencia_config(texto_completo_pdf):
             return int(match_potencia.group(1))
     return None
 
+# --- SUBSTITUA A FUNÇÃO ANTIGA DO EIXO POR ESTA VERSÃO ATUALIZADA ---
 def checar_regra_eixo_bruto(texto_completo_pdf):
     texto_normalizado = _normalizar_texto_completo(texto_completo_pdf)
     numero_eixo = _extrair_numero_eixo(texto_normalizado)
+    regra = "Eixo Bruto/Motriz vs Grafites"
+    
+    # --- A MUDANÇA COMEÇA AQUI: Adicionando a mensagem de dica ---
+    msg_dica_falha = "Dica: Para carcaças >= 225S, o correto e: Anel de Grafite Liso + Anel de Aco Ranhurado Simples + Anel de Grafite Ranhurado. Para carcaças < 225S, o correto e: Anel de Grafite Ranhurado dos dois lados + Anel de Aco Liso."
+
     if not numero_eixo:
-        return { "regra": "Eixo Bruto/Motriz vs Grafites", "status": "FALHA", "detalhes": "A expressao 'eixo bruto' ou 'eixo motriz' seguida de um numero e S/L nao foi encontrada." }
+        return { "regra": regra, "status": "FALHA", "detalhes": f"A expressao 'eixo bruto' ou 'eixo motriz' seguida de um numero e S/L nao foi encontrada. {msg_dica_falha}" }
+    
     if numero_eixo >= 225:
         tem_ranhurado = "grafite ranhurado" in texto_normalizado
         tem_liso = "grafite liso" in texto_normalizado
-        if tem_ranhurado and tem_liso: return { "regra": "Eixo Bruto/Motriz vs Grafites", "status": "OK", "detalhes": f"Eixo ({numero_eixo}) >= 225. 'Grafite ranhurado' e 'Grafite liso' encontrados como esperado." }
+        if tem_ranhurado and tem_liso:
+            return { "regra": regra, "status": "OK", "detalhes": f"Eixo ({numero_eixo}) >= 225. 'Grafite ranhurado' e 'Grafite liso' encontrados como esperado." }
         else:
             erros = []
             if not tem_ranhurado: erros.append("'grafite ranhurado' nao foi encontrado")
             if not tem_liso: erros.append("'grafite liso' nao foi encontrado")
-            return { "regra": "Eixo Bruto/Motriz vs Grafites", "status": "FALHA", "detalhes": f"Eixo ({numero_eixo}) >= 225. Erro: {', '.join(erros)}." }
-    else:
+            return { "regra": regra, "status": "FALHA", "detalhes": f"Eixo ({numero_eixo}) >= 225. Erro: {', '.join(erros)}. {msg_dica_falha}" }
+    else: # numero_eixo < 225
         tem_liso = "grafite liso" in texto_normalizado
-        if not tem_liso: return { "regra": "Eixo Bruto/Motriz vs Grafites", "status": "OK", "detalhes": f"Eixo ({numero_eixo}) < 225. 'Grafite liso' nao foi encontrado, como esperado." }
-        else: return { "regra": "Eixo Bruto/Motriz vs Grafites", "status": "FALHA", "detalhes": f"Eixo ({numero_eixo}) < 225. Erro: 'Grafite liso' foi encontrado, o que nao e permitido." }
+        if not tem_liso:
+            return { "regra": regra, "status": "OK", "detalhes": f"Eixo ({numero_eixo}) < 225. 'Grafite liso' nao foi encontrado, como esperado." }
+        else:
+            return { "regra": regra, "status": "FALHA", "detalhes": f"Eixo ({numero_eixo}) < 225. Erro: 'Grafite liso' foi encontrado, o que nao e permitido. {msg_dica_falha}" }
 
 def checar_regra_exportacao(texto_completo_pdf):
     match_config = re.search(r"Config\.+:\s*(.*)", texto_completo_pdf, re.IGNORECASE | re.DOTALL)
@@ -628,6 +638,7 @@ if uploaded_file is not None:
                     with st.expander(f"❌ {res['regra']}: FALHA", expanded=True):
                         st.error(f"**Status:** {res['status']}")
                         st.warning(f"**Detalhes:** {res['detalhes']}")
+
 
 
 
