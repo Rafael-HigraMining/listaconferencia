@@ -504,6 +504,7 @@ def checar_regra_componentes_especiais_selo(texto_completo_pdf):
         detalhes_falha = f"Rotor e de material especial ({material_rotor}), mas foram encontrados os seguintes problemas: {'; '.join(erros)}"
         return {"regra": regra, "status": "FALHA", "detalhes": detalhes_falha}
 
+# --- SUBSTITUA A FUNÇÃO ANTIGA DE POTÊNCIA VS CABO POR ESTA VERSÃO ATUALIZADA ---
 def checar_regra_potencia_cabo_flexivel(texto_completo_pdf):
     """Para potências entre 300CV e 400CV, verifica se o cabo flexível é de 95mm²."""
     potencia = _extrair_potencia_config(texto_completo_pdf)
@@ -516,30 +517,31 @@ def checar_regra_potencia_cabo_flexivel(texto_completo_pdf):
     if not (300 <= potencia <= 400):
         return {"regra": regra, "status": "OK", "detalhes": f"Potencia ({potencia}CV) fora da faixa de 300-400CV. Regra nao aplicavel."}
 
+    # --- A MUDANÇA COMEÇA AQUI: Adicionando a mensagem de dica ---
+    msg_dica_falha = "Dica: Se alterar o cabo, lembrar de alterar tambem o prensa-cabo e o tampao dos fios."
+    
     # Se a potência está na faixa, a verificação é necessária
     texto_normalizado = _normalizar_texto_completo(texto_completo_pdf)
     
-    # Encontra todas as linhas que contêm "cabo flexivel"
     linhas_com_cabo = [
         linha for linha in texto_completo_pdf.splitlines() 
         if "cabo flexivel" in _normalizar_texto_completo(linha)
     ]
 
     if not linhas_com_cabo:
-        return {"regra": regra, "status": "FALHA", "detalhes": f"Potencia e de {potencia}CV, mas nenhum item 'Cabo Flexivel' foi encontrado."}
+        return {"regra": regra, "status": "FALHA", "detalhes": f"Potencia e de {potencia}CV, mas nenhum item 'Cabo Flexivel' foi encontrado. {msg_dica_falha}"}
 
     # Verifica se alguma das linhas encontradas tem o diâmetro correto
     diametro_correto_encontrado = False
     for linha in linhas_com_cabo:
-        # Usamos a mesma regex robusta para encontrar '95mm²' ou '95mm2'
         if re.search(r"95\s*mm[2²]", _normalizar_texto_completo(linha)):
             diametro_correto_encontrado = True
-            break # Encontrou, não precisa checar mais
+            break
 
     if diametro_correto_encontrado:
         return {"regra": regra, "status": "OK", "detalhes": f"Potencia e de {potencia}CV. O 'Cabo Flexivel' com o diametro correto (95mm²) foi encontrado."}
     else:
-        return {"regra": regra, "status": "FALHA", "detalhes": f"Potencia e de {potencia}CV, mas o 'Cabo Flexivel' com diametro de 95mm² NAO foi encontrado."}
+        return {"regra": regra, "status": "FALHA", "detalhes": f"Potencia e de {potencia}CV, mas o 'Cabo Flexivel' com diametro de 95mm² NAO foi encontrado. {msg_dica_falha}"}"}
         
 # Criando as regras de fábrica
 checar_regra_plaqueta_sentido_giro = _criar_checador_presenca_obrigatoria("Presenca de Plaqueta Sentido de Giro", "plaqueta sentido de giro")
@@ -626,6 +628,7 @@ if uploaded_file is not None:
                     with st.expander(f"❌ {res['regra']}: FALHA", expanded=True):
                         st.error(f"**Status:** {res['status']}")
                         st.warning(f"**Detalhes:** {res['detalhes']}")
+
 
 
 
