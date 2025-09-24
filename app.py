@@ -316,9 +316,9 @@ def checar_regra_tubo_termocontratil(texto_completo_pdf):
     tubo_esperado = ""
     if tamanho_cabo < 70:
         tubo_esperado = 'tubo termocontratil 3/4"'
-    elif 70 <= tamanho_cabo <= 120:
+    elif 70 <= tamanho_cabo < 95:
         tubo_esperado = 'tubo termocontratil 1"'
-    elif tamanho_cabo == 150:
+    elif 95 <= tamanho_cabo <= 150:
         if 'tubo termoretratil 1.1/4"' in texto_normalizado or 'tubo termocontratil 1.1/4"' in texto_normalizado:
             return {"regra": regra, "status": "OK", "detalhes": f"Para o cabo de {tamanho_cabo}mm2, o tubo correto ('1.1/4\"') foi encontrado."}
         else:
@@ -638,6 +638,7 @@ if uploaded_file is not None:
                     with st.expander(f"❌ {res['regra']}: FALHA", expanded=True):
                         st.error(f"**Status:** {res['status']}")
                         st.warning(f"**Detalhes:** {res['detalhes']}")
+
 
 
 
