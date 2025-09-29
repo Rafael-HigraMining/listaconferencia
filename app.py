@@ -558,6 +558,56 @@ checar_regra_plaqueta_sentido_giro = _criar_checador_presenca_obrigatoria("Prese
 checar_regra_plaqueta_identifica = _criar_checador_presenca_obrigatoria("Presenca de Plaqueta de Identificacao", "plaqueta identifica")
 checar_regra_plaqueta_guia_geral = _criar_checador_contagem_obrigatoria("Presenca de Plaqueta Guia", "plaqueta guia")
 
+def checar_regra_tubo_fluxo_rosca(texto_completo_pdf):
+    """Verifica se 'tubo de fluxo' e 'rosca' aparecem juntos."""
+    regra = "Verificacao Tubo de Fluxo com Rosca"
+    todas_as_linhas = texto_completo_pdf.splitlines()
+    
+    indices_tubo_fluxo = [
+        i for i, linha in enumerate(todas_as_linhas) 
+        if "tubo de fluxo" in _normalizar_texto_completo(linha)
+    ]
+
+    if not indices_tubo_fluxo:
+        return {"regra": regra, "status": "FALHA", "detalhes": "O item 'Tubo de Fluxo' nao foi encontrado no documento."}
+
+    for i in indices_tubo_fluxo:
+        linha_atual_norm = _normalizar_texto_completo(todas_as_linhas[i])
+        
+        # Checa a linha atual
+        if "rosca" in linha_atual_norm:
+            continue 
+
+        # Checa a linha seguinte, se ela existir
+        if (i + 1) < len(todas_as_linhas):
+            linha_seguinte_norm = _normalizar_texto_completo(todas_as_linhas[i+1])
+            if "rosca" in linha_seguinte_norm:
+                continue 
+
+        # Se chegou aqui, 'rosca' não foi encontrada perto do 'tubo de fluxo'
+        return {"regra": regra, "status": "FALHA", "detalhes": f"O item 'Tubo de Fluxo' foi encontrado (linha ~{i+1} do PDF), mas a palavra 'rosca' nao foi encontrada na mesma linha ou na linha seguinte."}
+
+    # Se o loop terminar, todas as ocorrências estavam corretas
+    return {"regra": regra, "status": "OK", "detalhes": f"Encontrado(s) {len(indices_tubo_fluxo)} item(ns) 'Tubo de Fluxo' e todos possuem a especificacao 'rosca' proxima."}
+
+
+def checar_regra_prensa_cabo_tampa_fio(texto_completo_pdf):
+    """Verifica a presença obrigatória de 'prensa-cabo' e 'tampa dos fio'."""
+    regra = "Presenca de Prensa-Cabo e Tampa dos Fios"
+    texto_normalizado_doc = _normalizar_texto_completo(texto_completo_pdf)
+    
+    itens_obrigatorios = ["prensa-cabo", "tampa dos fio"]
+    itens_faltando = []
+
+    for item in itens_obrigatorios:
+        if item not in texto_normalizado_doc:
+            itens_faltando.append(item)
+
+    if not itens_faltando:
+        return {"regra": regra, "status": "OK", "detalhes": "Os itens obrigatorios 'prensa-cabo' e 'tampa dos fio' foram encontrados."}
+    else:
+        return {"regra": regra, "status": "FALHA", "detalhes": f"Nao foram encontrados os seguintes itens obrigatorios: {', '.join(itens_faltando)}."}
+
 # -------------------------------------------------------------------
 # AQUI FICA O ORQUESTRADOR PRINCIPAL DO CHECKLIST
 # -------------------------------------------------------------------
@@ -590,6 +640,8 @@ def executar_checklist_completo(texto_pdf):
         checar_regra_anel_desgaste,
         checar_regra_componentes_especiais_selo,
         checar_regra_potencia_cabo_flexivel,
+        checar_regra_tubo_fluxo_rosca,
+        checar_regra_prensa_cabo_tampa_fio,
     ]
     
     resultados_finais = []
@@ -638,6 +690,7 @@ if uploaded_file is not None:
                     with st.expander(f"❌ {res['regra']}: FALHA", expanded=True):
                         st.error(f"**Status:** {res['status']}")
                         st.warning(f"**Detalhes:** {res['detalhes']}")
+
 
 
 
