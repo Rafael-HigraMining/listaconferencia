@@ -5,6 +5,10 @@ import re
 from urllib.parse import quote
 import base64
 from pathlib import Path
+import fitz  # PyMuPDF
+import re
+import io
+import unicodedata
 
 # ===================================================================
 # LÓGICA DO SELETOR (INTOCADA, CONFORME SOLICITADO)
@@ -915,7 +919,7 @@ def ferramenta_interna():
     Esta função desenha a interface da sua ferramenta interna.
     Todo o código da nova funcionalidade deve vir aqui dentro.
     """
-    st.set_page_config(layout="centered", page_title="Ferramenta Interna") # Pode ter uma config diferente
+    
     
     st.title("Ferramenta Interna Secreta 🕵️")
     st.info("Esta página só é visível para quem tem o link secreto.")
@@ -923,12 +927,6 @@ def ferramenta_interna():
     st.write("---")
     
     
-    import streamlit as st
-    import fitz  # PyMuPDF
-    import re
-    import io
-    import unicodedata
-
     # -------------------------------------------------------------------
     # AQUI COLOCAMOS NOSSAS FUNÇÕES DE CHECAGEM (A LÓGICA DO BACK-END)
     # -------------------------------------------------------------------
