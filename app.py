@@ -1624,11 +1624,7 @@ else:
     # Se não, executa o Seletor de Bombas normalmente
     # TODO O SEU CÓDIGO ORIGINAL DA INTERFACE VAI AQUI DENTRO
 
-    # Centraliza os Textos
-    st.markdown(f"<h1 style='text-align: center;'>{T['main_title']}</h1>", unsafe_allow_html=True)
-    st.markdown(f"<p style='text-align: center;'>{T['welcome_message']}</p>", unsafe_allow_html=True)
-    st.info(T['performance_note'])
-    st.divider()
+    
     # --- 1. Configurações Iniciais da Página e Estilos ---
     if 'lang' not in st.session_state: st.session_state.lang = 'pt'
     if 'resultado_busca' not in st.session_state: st.session_state.resultado_busca = None
@@ -1783,7 +1779,11 @@ else:
         st.image("logo.png", width=700)
 
     T = TRADUCOES[st.session_state.lang]
-
+    # Centraliza os Textos
+    st.markdown(f"<h1 style='text-align: center;'>{T['main_title']}</h1>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align: center;'>{T['welcome_message']}</p>", unsafe_allow_html=True)
+    st.info(T['performance_note'])
+    st.divider()
 
 
     # --- 3. Bloco de Entradas do Usuário ---
