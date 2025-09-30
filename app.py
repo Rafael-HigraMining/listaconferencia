@@ -1617,161 +1617,6 @@ if uploaded_file is not None:
 # ===================================================================
 # INTERFACE STREAMLIT (COM DESIGN E LAYOUT REESTRUTURADOS)
 # ===================================================================
-
-# --- 1. Configurações Iniciais da Página e Estilos ---
-if 'lang' not in st.session_state: st.session_state.lang = 'pt'
-if 'resultado_busca' not in st.session_state: st.session_state.resultado_busca = None
-if 'search_source' not in st.session_state: st.session_state.search_source = None # Para controlar a origem da busca
-
-st.set_page_config(
-    layout="wide",
-    page_title="Seletor Higra Mining",
-    page_icon="iconhigra.png" 
-)
-
-COR_PRIMARIA = "#134883"
-COR_SECUNDARIA = "#F8AC2E"
-COR_FUNDO = "#F0F5FF"
-COR_TEXTO = "#333333"
-
-st.markdown(f"""
-<style>
-    /* Configurações gerais */
-    .stApp {{
-        background-color: {COR_FUNDO};
-        color: {COR_TEXTO};
-    }}
-    
-    /* Cabeçalhos */
-    h1, h2, h3 {{
-        color: {COR_PRIMARIA};
-    }}
-
-    /* Botões Principais de Ação */
-    .stButton>button {{
-        border: 2px solid {COR_PRIMARIA};
-        background-color: {COR_PRIMARIA};
-        color: white;
-        font-weight: bold;
-        transition: all 0.3s ease;
-        border-radius: 8px;
-    }}
-    .stButton>button:hover {{
-        background-color: white;
-        color: {COR_PRIMARIA};
-    }}
-    
-    /* Alertas */
-    .stAlert > div {{ border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 15px 20px; }}
-    .stAlert-info {{ background-color: #e3f2fd; color: {COR_PRIMARIA}; border-left: 5px solid {COR_PRIMARIA}; }}
-    .stAlert-error {{ background-color: #ffebee; color: #b71c1c; border-left: 5px solid #E74C3C; }}
-
-    /* Containers com Borda (Cards) */
-    [data-testid="stVerticalBlock"] > [style*="flex-direction: column;"] > [data-testid="stVerticalBlock"] {{
-        border: 1px solid #e1e4e8;
-        border-radius: 8px;
-        padding: 20px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        background-color: white;
-    }}
-
-    /* Container de bandeiras */
-    .bandeira-container {{ cursor: pointer; transition: all 0.2s ease-in-out; border-radius: 8px; padding: 5px; margin-top: 10px; border: 2px solid transparent; }}
-    .bandeira-container:hover {{ transform: scale(1.1); background-color: rgba(19, 72, 131, 0.1); }}
-    .bandeira-container.selecionada {{ border: 2px solid {COR_SECUNDARIA}; box-shadow: 0 0 10px rgba(248, 172, 46, 0.5); }}
-    .bandeira-img {{ width: 45px; height: 30px; object-fit: cover; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }}
-
-    /* Estilização das Abas (st.tabs) */
-    [data-baseweb="tab-list"] {{
-        gap: 8px;
-        border-bottom: none !important;
-        margin-bottom: 10px;
-    }}
-    [data-baseweb="tab-list"] button {{
-        border-radius: 8px !important;
-        transition: all 0.3s ease !important;
-        padding: 10px 20px !important;
-        font-weight: bold;
-        border: none !important;
-    }}
-    [data-baseweb="tab-list"] button[aria-selected="false"] {{
-        background-color: #e3f2fd !important;
-        color: {COR_PRIMARIA} !important;
-    }}
-    [data-baseweb="tab-list"] button[aria-selected="false"]:hover {{
-        background-color: #d1e9fc !important;
-    }}
-    [data-baseweb="tab-list"] button[aria-selected="true"] {{
-        background-color: {COR_PRIMARIA} !important;
-        color: white !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        position: relative;
-    }}
-    [data-baseweb="tab-list"] button[aria-selected="true"]::after {{
-        content: '';
-        position: absolute;
-        bottom: -5px;
-        left: 5%;
-        width: 90%;
-        height: 4px;
-        background-color: {COR_SECUNDARIA};
-        border-radius: 2px;
-    }}
-
-    /* ========================================================================= */
-    /* NOVO: Estilos específicos para os campos da CALCULADORA DE SISTEMA        */
-    /* ========================================================================= */
-    .calculator-container div[data-testid="stNumberInput"] > div > div,
-    .calculator-container div[data-testid="stSelectbox"] > div {{
-        background-color: #FFF9E9 !important; /* Fundo amarelo clarinho */
-        border: 1px solid #F8AC2E !important; /* Borda amarela sutil */
-        border-radius: 8px !important;
-    }}
-
-    .calculator-container div[data-testid="stNumberInput"] input {{
-        background-color: transparent !important;
-    }}
-</style>
-""", unsafe_allow_html=True)
-
-# --- 2. Cabeçalho com Logo e Seleção de Idioma ---
-query_params = st.query_params
-if 'lang' in query_params:
-    lang_from_url = query_params['lang']
-    if lang_from_url in ['pt', 'en', 'es']:
-        st.session_state.lang = lang_from_url
-
-bandeiras = {
-    "pt": {"nome": "PT", "img": "brasil.png"},
-    "en": {"nome": "EN", "img": "uk.png"},
-    "es": {"nome": "ES", "img": "espanha.png"}
-}
-
-# Mantém as bandeiras no canto direito superior
-_, col_bandeiras = st.columns([6, 2])
-with col_bandeiras:
-    flag_cols = st.columns(len(bandeiras))
-    for i, (lang_code, info) in enumerate(bandeiras.items()):
-        with flag_cols[i]:
-            classe_css = "selecionada" if st.session_state.lang == lang_code else ""
-            img_base64 = image_to_base64(info["img"])
-            st.markdown(f"""
-            <a href="?lang={lang_code}" target="_self" style="text-decoration: none;">
-                <div style="display: flex; flex-direction: column; align-items: center; font-family: 'Source Sans Pro', sans-serif; font-weight: bold; color: {COR_PRIMARIA};">
-                    <span>{info['nome']}</span>
-                    <div class="bandeira-container {classe_css}">
-                        <img src="data:image/png;base64,{img_base64}" class="bandeira-img">
-                    </div>
-                </div>
-            </a>
-            """, unsafe_allow_html=True)
-
-# Centraliza o Logo
-col1, col_logo_centro, col3 = st.columns([2, 3, 2])
-with col_logo_centro:
-    st.image("logo.png", width=700)
-
-T = TRADUCOES[st.session_state.lang]
 if st.query_params.get("view") == "interno":
     # Se for, chama a função da ferramenta interna e para a execução
     ferramenta_interna()
@@ -1784,6 +1629,161 @@ else:
     st.markdown(f"<p style='text-align: center;'>{T['welcome_message']}</p>", unsafe_allow_html=True)
     st.info(T['performance_note'])
     st.divider()
+    # --- 1. Configurações Iniciais da Página e Estilos ---
+    if 'lang' not in st.session_state: st.session_state.lang = 'pt'
+    if 'resultado_busca' not in st.session_state: st.session_state.resultado_busca = None
+    if 'search_source' not in st.session_state: st.session_state.search_source = None # Para controlar a origem da busca
+
+    st.set_page_config(
+        layout="wide",
+        page_title="Seletor Higra Mining",
+        page_icon="iconhigra.png" 
+    )
+
+    COR_PRIMARIA = "#134883"
+    COR_SECUNDARIA = "#F8AC2E"
+    COR_FUNDO = "#F0F5FF"
+    COR_TEXTO = "#333333"
+
+    st.markdown(f"""
+    <style>
+        /* Configurações gerais */
+        .stApp {{
+            background-color: {COR_FUNDO};
+            color: {COR_TEXTO};
+        }}
+        
+        /* Cabeçalhos */
+        h1, h2, h3 {{
+            color: {COR_PRIMARIA};
+        }}
+
+        /* Botões Principais de Ação */
+        .stButton>button {{
+            border: 2px solid {COR_PRIMARIA};
+            background-color: {COR_PRIMARIA};
+            color: white;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            border-radius: 8px;
+        }}
+        .stButton>button:hover {{
+            background-color: white;
+            color: {COR_PRIMARIA};
+        }}
+        
+        /* Alertas */
+        .stAlert > div {{ border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 15px 20px; }}
+        .stAlert-info {{ background-color: #e3f2fd; color: {COR_PRIMARIA}; border-left: 5px solid {COR_PRIMARIA}; }}
+        .stAlert-error {{ background-color: #ffebee; color: #b71c1c; border-left: 5px solid #E74C3C; }}
+
+        /* Containers com Borda (Cards) */
+        [data-testid="stVerticalBlock"] > [style*="flex-direction: column;"] > [data-testid="stVerticalBlock"] {{
+            border: 1px solid #e1e4e8;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            background-color: white;
+        }}
+
+        /* Container de bandeiras */
+        .bandeira-container {{ cursor: pointer; transition: all 0.2s ease-in-out; border-radius: 8px; padding: 5px; margin-top: 10px; border: 2px solid transparent; }}
+        .bandeira-container:hover {{ transform: scale(1.1); background-color: rgba(19, 72, 131, 0.1); }}
+        .bandeira-container.selecionada {{ border: 2px solid {COR_SECUNDARIA}; box-shadow: 0 0 10px rgba(248, 172, 46, 0.5); }}
+        .bandeira-img {{ width: 45px; height: 30px; object-fit: cover; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }}
+
+        /* Estilização das Abas (st.tabs) */
+        [data-baseweb="tab-list"] {{
+            gap: 8px;
+            border-bottom: none !important;
+            margin-bottom: 10px;
+        }}
+        [data-baseweb="tab-list"] button {{
+            border-radius: 8px !important;
+            transition: all 0.3s ease !important;
+            padding: 10px 20px !important;
+            font-weight: bold;
+            border: none !important;
+        }}
+        [data-baseweb="tab-list"] button[aria-selected="false"] {{
+            background-color: #e3f2fd !important;
+            color: {COR_PRIMARIA} !important;
+        }}
+        [data-baseweb="tab-list"] button[aria-selected="false"]:hover {{
+            background-color: #d1e9fc !important;
+        }}
+        [data-baseweb="tab-list"] button[aria-selected="true"] {{
+            background-color: {COR_PRIMARIA} !important;
+            color: white !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+        }}
+        [data-baseweb="tab-list"] button[aria-selected="true"]::after {{
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 5%;
+            width: 90%;
+            height: 4px;
+            background-color: {COR_SECUNDARIA};
+            border-radius: 2px;
+        }}
+
+        /* ========================================================================= */
+        /* NOVO: Estilos específicos para os campos da CALCULADORA DE SISTEMA        */
+        /* ========================================================================= */
+        .calculator-container div[data-testid="stNumberInput"] > div > div,
+        .calculator-container div[data-testid="stSelectbox"] > div {{
+            background-color: #FFF9E9 !important; /* Fundo amarelo clarinho */
+            border: 1px solid #F8AC2E !important; /* Borda amarela sutil */
+            border-radius: 8px !important;
+        }}
+
+        .calculator-container div[data-testid="stNumberInput"] input {{
+            background-color: transparent !important;
+        }}
+    </style>
+    """, unsafe_allow_html=True)
+
+    # --- 2. Cabeçalho com Logo e Seleção de Idioma ---
+    query_params = st.query_params
+    if 'lang' in query_params:
+        lang_from_url = query_params['lang']
+        if lang_from_url in ['pt', 'en', 'es']:
+            st.session_state.lang = lang_from_url
+
+    bandeiras = {
+        "pt": {"nome": "PT", "img": "brasil.png"},
+        "en": {"nome": "EN", "img": "uk.png"},
+        "es": {"nome": "ES", "img": "espanha.png"}
+    }
+
+    # Mantém as bandeiras no canto direito superior
+    _, col_bandeiras = st.columns([6, 2])
+    with col_bandeiras:
+        flag_cols = st.columns(len(bandeiras))
+        for i, (lang_code, info) in enumerate(bandeiras.items()):
+            with flag_cols[i]:
+                classe_css = "selecionada" if st.session_state.lang == lang_code else ""
+                img_base64 = image_to_base64(info["img"])
+                st.markdown(f"""
+                <a href="?lang={lang_code}" target="_self" style="text-decoration: none;">
+                    <div style="display: flex; flex-direction: column; align-items: center; font-family: 'Source Sans Pro', sans-serif; font-weight: bold; color: {COR_PRIMARIA};">
+                        <span>{info['nome']}</span>
+                        <div class="bandeira-container {classe_css}">
+                            <img src="data:image/png;base64,{img_base64}" class="bandeira-img">
+                        </div>
+                    </div>
+                </a>
+                """, unsafe_allow_html=True)
+
+    # Centraliza o Logo
+    col1, col_logo_centro, col3 = st.columns([2, 3, 2])
+    with col_logo_centro:
+        st.image("logo.png", width=700)
+
+    T = TRADUCOES[st.session_state.lang]
+
 
 
     # --- 3. Bloco de Entradas do Usuário ---
