@@ -7,332 +7,34 @@ import base64
 from pathlib import Path
 
 # ===================================================================
-# CONFIGURAÇÃO INICIAL DO APLICATIVO
+# LÓGICA DO SELETOR (INTOCADA, CONFORME SOLICITADO)
 # ===================================================================
-st.set_page_config(
-    page_title="Higra Mining Selector", 
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+# ===================================================================
+# CONFIGURAÇÕES GERAIS
+# ===================================================================
+MOSTRAR_CALCULADORA = False # Mude para True para exibir a aba da calculadora
+# -------------------------------------------------------------------
+# Funções Auxiliares (Imagens, PDF)
+# -------------------------------------------------------------------
+if 'mostrar_lista_pecas' not in st.session_state: st.session_state.mostrar_lista_pecas = False
+if 'mostrar_desenho' not in st.session_state: st.session_state.mostrar_desenho = False
+if 'mostrar_desenho_visualizacao' not in st.session_state: st.session_state.mostrar_desenho_visualizacao = False
+if 'mostrar_lista_visualizacao' not in st.session_state: st.session_state.mostrar_lista_visualizacao = False
+if 'mostrar_buscador_modelo' not in st.session_state: st.session_state.mostrar_buscador_modelo = False
+if 'mostrar_grafico' not in st.session_state: st.session_state.mostrar_grafico = False
 
-# ===================================================================
-# INICIALIZAÇÃO DE ESTADOS DA SESSÃO
-# ===================================================================
-session_defaults = {
-    'mostrar_lista_pecas': False,
-    'mostrar_desenho': False,
-    'mostrar_desenho_visualizacao': False,
-    'mostrar_lista_visualizacao': False,
-    'mostrar_buscador_modelo': False,
-    'mostrar_grafico': False,
-    'lang': 'pt',
-    'resultado_busca': None,
-    'mailto_link': None,
-    'iniciar_orcamento': False,
-    'opcionais_selecionados': None
-}
-
-for key, value in session_defaults.items():
-    if key not in st.session_state:
-        st.session_state[key] = value
-
-# ===================================================================
-# ESTILOS CSS PROFISSIONAIS
-# ===================================================================
-st.markdown("""
+# Adicione este bloco para esconder o menu de navegação
+st.markdown(
+    """
 <style>
-    /* Importação de fontes modernas */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    
-    /* Configurações globais */
-    .stApp {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        font-family: 'Inter', sans-serif;
-    }
-    
-    /* Container principal com glassmorphism */
-    .main-container {
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
-        border-radius: 20px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        padding: 2rem;
-        margin: 1rem 0;
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-    }
-    
-    /* Cabeçalho do aplicativo */
-    .app-header {
-        text-align: center;
-        padding: 2rem 0;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 15px;
-        margin-bottom: 2rem;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .app-title {
-        font-size: 3rem;
-        font-weight: 700;
-        background: linear-gradient(45deg, #667eea, #764ba2);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 0.5rem;
-    }
-    
-    .app-subtitle {
-        font-size: 1.2rem;
-        color: rgba(255, 255, 255, 0.8);
-        font-weight: 300;
-    }
-    
-    /* Seções organizadas */
-    .section-container {
-        background: rgba(255, 255, 255, 0.08);
-        border-radius: 15px;
-        padding: 1.5rem;
-        margin: 1rem 0;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        transition: all 0.3s ease;
-    }
-    
-    .section-container:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.5);
-    }
-    
-    .section-title {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: white;
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    
-    .section-title::before {
-        content: '';
-        width: 4px;
-        height: 24px;
-        background: linear-gradient(45deg, #667eea, #764ba2);
-        border-radius: 2px;
-    }
-    
-    /* Botões modernos */
-    .stButton > button {
-        background: linear-gradient(45deg, #667eea, #764ba2);
-        border: none;
-        border-radius: 10px;
-        color: white;
-        font-weight: 600;
-        padding: 0.75rem 1.5rem;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px 0 rgba(102, 126, 234, 0.3);
-        width: 100%;
-    }
-    
-    .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px 0 rgba(102, 126, 234, 0.5);
-    }
-    
-    /* Botão primário especial */
-    .primary-button {
-        background: linear-gradient(45deg, #ff6b6b, #ee5a52);
-        box-shadow: 0 4px 15px 0 rgba(255, 107, 107, 0.3);
-    }
-    
-    .primary-button:hover {
-        box-shadow: 0 8px 25px 0 rgba(255, 107, 107, 0.5);
-    }
-    
-    /* Inputs modernos */
-    .stNumberInput > div > div > input,
-    .stSelectbox > div > div > select {
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 8px;
-        color: white;
-        backdrop-filter: blur(5px);
-    }
-    
-    /* Labels dos inputs */
-    .stNumberInput > label,
-    .stSelectbox > label {
-        color: white;
-        font-weight: 500;
-    }
-    
-    /* Abas modernas */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 10px;
-        padding: 0.5rem;
-    }
-    
-    .stTabs [data-baseweb="tab"] {
-        background: transparent;
-        border-radius: 8px;
-        color: rgba(255, 255, 255, 0.7);
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
-    
-    .stTabs [data-baseweb="tab"]:hover {
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
-    }
-    
-    .stTabs [aria-selected="true"] {
-        background: linear-gradient(45deg, #667eea, #764ba2);
-        color: white;
-    }
-    
-    /* Rádio buttons */
-    .stRadio > div {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 10px;
-        padding: 0.5rem;
-    }
-    
-    /* DataFrames */
-    .stDataFrame {
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
-        backdrop-filter: blur(10px);
-    }
-    
-    /* Alertas e mensagens */
-    .stAlert {
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
-        backdrop-filter: blur(10px);
-        border-left: 4px solid #667eea;
-    }
-    
-    .stSuccess {
-        border-left-color: #4ecdc4;
-    }
-    
-    .stWarning {
-        border-left-color: #ffe66d;
-    }
-    
-    .stError {
-        border-left-color: #ff6b6b;
-    }
-    
-    /* Containers com bordas */
-    [data-testid="stContainer"] {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    /* Spinner personalizado */
-    .stSpinner > div {
-        border-color: #667eea;
-    }
-    
-    /* Divisores invisíveis */
-    .stDivider {
-        margin: 2rem 0;
-        border-color: rgba(255, 255, 255, 0.1);
-    }
-    
-    /* Bandeiras de idioma */
-    .bandeira-container {
-        cursor: pointer;
-        transition: all 0.3s ease;
-        border-radius: 10px;
-        padding: 0.5rem;
-        background: rgba(255, 255, 255, 0.05);
-        border: 2px solid transparent;
-    }
-    
-    .bandeira-container:hover {
-        transform: scale(1.05);
-        background: rgba(255, 255, 255, 0.1);
-        border-color: rgba(255, 255, 255, 0.3);
-    }
-    
-    .bandeira-container.selecionada {
-        border-color: #667eea;
-        background: rgba(102, 126, 234, 0.2);
-    }
-    
-    .bandeira-img {
-        width: 40px;
-        height: 25px;
-        object-fit: cover;
-        border-radius: 4px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-    }
-    
-    /* Métricas */
-    .metric-container {
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
-        padding: 1rem;
-        text-align: center;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .metric-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: white;
-        margin-bottom: 0.5rem;
-    }
-    
-    .metric-label {
-        font-size: 0.9rem;
-        color: rgba(255, 255, 255, 0.7);
-        text-transform: uppercase;
-        font-weight: 500;
-    }
-    
-    /* Efeitos de hover nos containers */
-    .hover-effect {
-        transition: all 0.3s ease;
-    }
-    
-    .hover-effect:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3);
-    }
-    
-    /* Gradientes de texto */
-    .gradient-text {
-        background: linear-gradient(45deg, #667eea, #764ba2);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-weight: 600;
-    }
-    
-    /* Responsividade */
-    @media (max-width: 768px) {
-        .app-title {
-            font-size: 2rem;
-        }
-        
-        .section-container {
-            padding: 1rem;
-        }
-        
-        .main-container {
-            padding: 1rem;
-            margin: 0.5rem;
-        }
+    [data-testid="stSidebar"] {
+        display: none;
     }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
-# ===================================================================
-# FUNÇÃO AUXILIAR PARA IMAGENS
-# ===================================================================
 @st.cache_data
 def image_to_base64(img_path):
     """Converte um arquivo de imagem para string base64."""
@@ -341,12 +43,8 @@ def image_to_base64(img_path):
         with path.open("rb") as f:
             return base64.b64encode(f.read()).decode()
     except FileNotFoundError:
-        # Retorna um pixel transparente se a imagem não for encontrada
         return "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
-# ===================================================================
-# NOVA FUNÇÃO PARA EXIBIR PDF
-# ===================================================================
 def mostrar_pdf(caminho_arquivo, legenda="Visualização do Documento"):
     """Exibe a primeira página de um PDF como imagem diretamente no Streamlit."""
     try:
@@ -354,22 +52,16 @@ def mostrar_pdf(caminho_arquivo, legenda="Visualização do Documento"):
         from PIL import Image
         import io
         
-        # Abre o arquivo PDF
         doc = fitz.open(caminho_arquivo)
-        
-        # Seleciona a primeira página
         page = doc.load_page(0)
         
-        # Renderiza a página como imagem (aumentando a resolução)
-        zoom = 3.0  # Aumenta a qualidade
+        zoom = 3.0
         mat = fitz.Matrix(zoom, zoom)
         pix = page.get_pixmap(matrix=mat)
         
-        # Converte para formato PIL Image
         img_bytes = pix.tobytes("png")
         image = Image.open(io.BytesIO(img_bytes))
         
-        # CORREÇÃO: Usa a legenda que foi passada como parâmetro
         st.image(image, caption=legenda, use_container_width=True)
         
     except FileNotFoundError:
@@ -377,11 +69,9 @@ def mostrar_pdf(caminho_arquivo, legenda="Visualização do Documento"):
     except Exception as e:
         st.error(f"Não foi possível exibir o PDF: {e}")
 
-# ===================================================================
-# DICIONÁRIO DE TRADUÇÕES (MANTIDO ORIGINAL)
-# ===================================================================
-ATIVAR_ORCAMENTO = False
-
+# -------------------------------------------------------------------
+# Dicionário de Traduções
+# -------------------------------------------------------------------
 TRADUCOES = {
     'pt': {
         'page_title': "Seletor Higra Mining",
@@ -390,19 +80,19 @@ TRADUCOES = {
         'input_header': "Parâmetros de Entrada",
         'eletric_freq_title': "Frequência Elétrica",
         'freq_header': "Frequência",
-        'flow_header': "Vazão Desejada",
-        'graph_header': "Gráfico de Performance",
-        'drawing_header': "Desenho Dimensional",
+        'flow_header': "**Vazão Desejada**",
+        'graph_header': "📊 Gráfico de Performance",
+        'drawing_header': "📐 Desenho Dimensional",
         'selector_tab_label': "Seletor por Ponto de Trabalho",
         'finder_tab_label': "Buscador por Modelo",
-        'parts_list_header': "Lista de Peças",
+        'parts_list_header': "📋 Lista de Peças",
         'view_graph_button': "Visualizar Gráfico",
         'close_graph_button': "Fechar Gráfico",
-        'pressure_header': "Pressão Desejada",
+        'pressure_header': "**Pressão Desejada**",
         'flow_value_label': "Valor da Vazão",
         'pressure_value_label': "Valor da Pressão",
         'view_drawing_button': "Visualizar Desenho",
-        'show_finder_button': "Buscar por Modelo da Bomba",
+        'show_finder_button': "🔎 Buscar por Modelo da Bomba",
         'view_parts_list_button': "Visualizar Lista de Peças",
         'close_view_button': "Fechar Visualização",
         'flow_unit_label': "Unidade Vazão",
@@ -410,6 +100,7 @@ TRADUCOES = {
         'model_select_label': "1. Selecione o Modelo",
         'motor_select_label': "2. Selecione o Motor (CV)",
         'find_pump_button': "Buscar Bomba",
+        'download_graph_button': "Baixar Gráfico",
         'pressure_unit_label': "Unidade Pressão",
         'converted_values_info': "Valores convertidos para a busca: **Vazão: {vazao} m³/h** | **Pressão: {pressao} mca**",
         'search_button': "Buscar Melhor Opção",
@@ -426,6 +117,270 @@ TRADUCOES = {
         'solution_parallel_info': "A vazão e potência abaixo são POR BOMBA. Vazão total = 2x.",
         'solution_series': "⚠️ Nenhuma opção única ou paralela. Alternativa: **DUAS BOMBAS EM SÉRIE**:",
         'solution_series_info': "A pressão abaixo é POR BOMBA. Pressão total = 2x.",
+        'no_solution_error': "❌ Nenhuma bomba encontrada. Tente outros valores.",
+        'quote_button_start': "Fazer Orçamento",
+        'quote_options_header': "Passo 1: Selecione os Opcionais da Bomba",
+        'quote_continue_button': "Continuar para o Próximo Passo",
+        'quote_contact_header': "Passo 2: Seus Dados de Contato",
+        'quote_form_name': "Seu Nome *",
+        'pipe_material_cs': "Aço Carbono",
+        'pipe_material_ss': "Aço Inox",
+        'pipe_material_di': "Ferro Dúctil",
+        'pipe_material_ci': "Ferro Fundido",
+        'pipe_material_pvc': "PVC",
+        'footer_copyright': "© 2025 Higra Mining. Todos os direitos reservados.",
+        'footer_more_info': "Para mais informações, visite ",
+        'footer_our_website': "nosso site ",
+        'search_with_data_button': "Buscar Bombas com Estes Dados",
+        'search_done_message': "Busca concluída! Os resultados estão na aba 'Seletor por Ponto de Trabalho'.",
+        'pipe_material_hdpe': "HDPE (PEAD)",
+        'quote_form_email': "Seu E-mail *",
+        'quote_form_message': "Mensagem (opcional)",
+        'quote_form_button': "Enviar Pedido de Orçamento",
+        'quote_form_warning': "Por favor, preencha seu nome e e-mail.",
+        'quote_form_success': "Pedido pronto para ser enviado!",
+        'download_drawing_button': "Baixar Desenho Dimensional",
+        'performance_note': "Nota: Nossos cálculos avançados para encontrar a bomba ideal podem levar alguns segundos. Agradecemos a sua paciência!",
+        'drawing_unavailable': "Desenho dimensional indisponível. Entre em contato para receber.",
+        'contact_button': "Contato",
+        'show_unique_button': "🔍 Mostrar Bombas Únicas",
+        'show_systems_button': "🔄 Mostrar Sistemas Múltiplos",
+        'view_mode_unique': "Modo de visualização: Bombas Únicas",
+        'view_mode_systems': "Modo de visualização: Sistemas Múltiplos",
+        'no_unique_pumps': "❌ Nenhuma bomba única encontrada para estes parâmetros.",
+        'no_systems_found': "❌ Nenhum sistema com múltiplas bombas encontrado para estes parâmetros.",
+        'system_type_single': "Única",
+        'system_type_parallel': "{} em Paralelo",
+        'system_type_series': "2 em Série",
+        'system_type_combined': "{} Bombas ({}x2)",
+        'system_type_header': "Tipo de Sistema",
+        'pressure_error_header': "Erro de Pressão",
+        'relative_error_header': "Erro Relativo",
+        'calculator_tab_label': "Calculadora de Sistema",
+        'calculator_header': "Calculadora de Ponto de Trabalho",
+        'calculator_intro': "Preencha os dados do seu sistema hidráulico para calcular a vazão e a pressão (altura manométrica) necessárias para o seu projeto.",
+        'section_general_data': "Dados Gerais do Projeto",
+        'desired_flow_rate': "Vazão Requerida",
+        'fluid_temperature': "Temperatura do Fluido (°C)",
+        'section_piping': "Detalhes da Tubulação",
+        'pipe_material': "Material da Tubulação",
+        'pipe_diameter': "Diâmetro Interno (mm)",
+        'pipe_length': "Comprimento Reto Total (m)",
+        'section_elevation': "Elevação (Desnível Geométrico)",
+        'suction_elevation': "Altura de Sucção (m)",
+        'discharge_elevation': "Altura de Recalque (m)",
+        'elevation_help': "Sucção: distância vertical do nível da água até o eixo da bomba. Recalque: distância vertical do eixo da bomba até o ponto de entrega final.",
+        'section_fittings': "Acessórios e Perdas Localizadas",
+        'elbow_90': "Cotovelo 90°",
+        'elbow_45': "Cotovelo 45°",
+        'gate_valve': "Válvula Gaveta (Aberta)",
+        'check_valve': "Válvula de Retenção",
+        'entry_loss': "Perda de Carga na Entrada (Sucção)",
+        'exit_loss': "Perda de Carga na Saída (Recalque)",
+        'calculate_button': "Calcular Ponto de Trabalho",
+        'results_header_calculator': "Resultado do Cálculo",
+        'calculated_head': "Altura Manométrica Total Calculada",
+        'use_data_button': "Usar estes dados para Buscar a Bomba",
+        'no_solution_found': "❌ Nenhuma bomba ou sistema de bombas foi encontrado para este ponto de trabalho. Tente outros valores ou entre em contato com nosso suporte.",
+        'quote_form_click_here': "Clique aqui para abrir e enviar o e-mail",
+        'quote_form_info': "Seu programa de e-mail padrão será aberto com todas as informações preenchidas.",
+        'email_subject': "Pedido de Orçamento via Seletor de Bombas - {nome}",
+        'email_body': """Olá,\n\nUm novo pedido de orçamento foi gerado através do Seletor de Bombas.\n\nDADOS DO CLIENTE:\n- Nome: {nome}\n- E-mail: {email}\n\nMENSAGEM:\n{mensagem}\n\n---------------------------------\nPARÂMETROS DA BUSCA:\n- Frequência: {freq}\n- Vazão: {vazao} m³/h\n- Pressão: {pressao} mca\n\n---------------------------------\nRESULTADOS ENCONTRADOS:\n{tabela_resultados}"""
+    },
+    'en': {
+        'page_title': "Higra Mining Selector",
+        'main_title': "Higra Mining Hydraulic Pump Selector",
+        'welcome_message': "Welcome! Enter your duty point data to find the best solution.",
+        'input_header': "Input Parameters",
+        'eletric_freq_title': "Electrical Frequency",
+        'freq_header': "Frequency",
+        'flow_header': "**Desired Flow**",
+        'pressure_header': "**Desired Head**",
+        'flow_value_label': "Flow Value",
+        'finder_header': "Search directly by pump model",
+        'model_select_label': "1. Select Model",
+        'motor_select_label': "2. Select Motor (CV)",
+        'find_pump_button': "Find Pump",
+        'pressure_value_label': "Head Value",
+        'selector_tab_label': "Selector by Duty Point",
+        'finder_tab_label': "Search by Model",
+        'flow_unit_label': "Flow Unit",
+        'graph_header': "📊 Performance Chart",
+        'drawing_header': "📐 Dimensional Drawing",
+        'parts_list_header': "📋 Parts List",
+        'view_graph_button': "View Chart",
+        'show_finder_button': "🔎 Search by Pump Model",
+        'close_graph_button': "Close Chart",
+        'pressure_unit_label': "Head Unit",
+        'view_drawing_button': "View Drawing",
+        'view_parts_list_button': "View Parts List",
+        'close_view_button': "Close View",
+        'parts_list_button': "Parts List",
+        'calculator_tab_label': "System Calculator",
+        'calculator_header': "Duty Point Calculator",
+        'calculator_intro': "Fill in your hydraulic system data to calculate the required flow rate and pressure (total dynamic head) for your project.",
+        'section_general_data': "General Project Data",
+        'desired_flow_rate': "Required Flow Rate",
+        'fluid_temperature': "Fluid Temperature (°C)",
+        'section_piping': "Piping Details",
+        'pipe_material': "Pipe Material",
+        'pipe_material_cs': "Carbon Steel",
+        'pipe_material_ss': "Stainless Steel",
+        'pipe_material_di': "Ductile Iron",
+        'pipe_material_ci': "Cast Iron",
+        'pipe_material_pvc': "PVC",
+        'download_graph_button': "Download Chart",
+        'footer_copyright': "© 2025 Higra Mining. All rights reserved.",
+        'footer_more_info': "For more information, visit ",
+        'footer_our_website': "our website",
+        'search_with_data_button': "Find Pumps with This Data",
+        'search_done_message': "Search complete! The results are on the 'Selector by Duty Point' tab.",
+        'pipe_material_hdpe': "HDPE",
+        'pipe_diameter': "Internal Diameter (mm)",
+        'pipe_length': "Total Straight Length (m)",
+        'section_elevation': "Elevation (Geometric Head)",
+        'suction_elevation': "Suction Head (m)",
+        'discharge_elevation': "Discharge Head (m)",
+        'elevation_help': "Suction: vertical distance from water level to pump centerline. Discharge: vertical distance from pump centerline to final delivery point.",
+        'section_fittings': "Fittings and Minor Losses",
+        'elbow_90': "90° Elbow",
+        'elbow_45': "45° Elbow",
+        'gate_valve': "Gate Valve (Open)",
+        'check_valve': "Check Valve",
+        'entry_loss': "Entrance Loss (Suction)",
+        'exit_loss': "Exit Loss (Discharge)",
+        'calculate_button': "Calculate Duty Point",
+        'results_header_calculator': "Calculation Result",
+        'calculated_head': "Calculated Total Dynamic Head",
+        'use_data_button': "Use this Data to Find a Pump",
+        'parts_list_warning': "Attention: The parts list is a reference document and may contain variations. If in doubt or for more detailed confirmation, please contact us.",
+        'download_parts_list_button': "Download Parts List",
+        'parts_list_unavailable': "Parts list unavailable. Please contact us to receive it.",
+        'converted_values_info': "Converted values for search: **Flow: {vazao} m³/h** | **Head: {pressao} mca**",
+        'search_button': "Find Best Option",
+        'spinner_text': "Calculating the best options for {freq}...",
+        'results_header': "Search Results",
+        'dimensional_drawing_button': "Dimensional Drawing",
+        'dimensional_drawing_warning': "Attention: The Dimensional Drawing is a reference document and may contain variations. If in doubt or for more detailed confirmation, please contact us.",
+        'solution_unique': "✅ Solution found with a **SINGLE PUMP**:",
+        'solution_parallel': "⚠️ No single pump with good efficiency. Alternative: **TWO PUMPS IN PARALLEL**:",
+        'solution_parallel_info': "Flow and power below are PER PUMP. Total flow = 2x.",
+        'solution_series': "⚠️ No single or parallel option. Alternative: **TWO PUMPS IN SERIES**:",
+        'solution_series_info': "Head below is PER PUMP. Total head = 2x.",
+        'no_solution_error': "❌ No pump found. Try other values.",
+        'quote_button_start': "Request a Quote",
+        'quote_options_header': "Step 1: Select Pump Options",
+        'quote_continue_button': "Continue to Next Step",
+        'quote_contact_header': "Step 2: Your Contact Information",
+        'quote_form_name': "Your Name *",
+        'download_drawing_button': "Download Dimensional Drawing",
+        'drawing_unavailable': "Dimensional drawing unavailable. Please contact us to receive it.",
+        'contact_button': "Contact",
+        'pressure_error_header': "Pressure Error",
+        'relative_error_header': "Relative Error",
+        'system_type_header': "System Type",
+        'no_solution_found': "❌ No pump or pump system was found for this duty point. Try other values or contact our support.",
+        'performance_note': "Note: Our advanced calculations to find the ideal pump may take a few seconds. We appreciate your patience!",
+        'quote_form_email': "Your Email *",
+        'system_type_single': "Single",
+        'show_unique_button': "🔍 Show Single Pumps",
+        'show_systems_button': "🔄 Show Multiple Systems",
+        'view_mode_unique': "Viewing mode: Single Pumps",
+        'view_mode_systems': "Viewing mode: Multiple Systems",
+        'no_unique_pumps': "❌ No single pump found for these parameters.",
+        'no_systems_found': "❌ No multiple pump system found for these parameters.",
+        'system_type_parallel': "{} in Parallel",
+        'system_type_series': "2 in Series",
+        'system_type_combined': "{} Pumps ({}x2)",
+        'quote_form_message': "Message (optional)",
+        'quote_form_button': "Send Quote Request",
+        'quote_form_warning': "Please fill in your name and email.",
+        'quote_form_success': "Request ready to be sent!",
+        'quote_form_click_here': "Click here to open and send the email",
+        'quote_form_info': "Your default email client will open with all the information pre-filled.",
+        'email_subject': "Quote Request via Pump Selector - {nome}",
+        'email_body': """Hello,\n\nA new quote request has been generated through the Pump Selector.\n\nCUSTOMER DATA:\n- Name: {nome}\n- Email: {email}\n\nMESSAGE:\n{mensagem}\n\n---------------------------------\nSEARCH PARAMETERS:\n- Frequency: {freq}\n- Flow: {vazao} m³/h\n- Head: {pressao} mca\n\n---------------------------------\nRESULTS FOUND:\n{tabela_resultados}"""
+    },
+    'es': {
+        'page_title': "Selector Higra Mining",
+        'main_title': "Selector de Bombas Hidráulicas Higra Mining",
+        'welcome_message': "¡Bienvenido! Ingrese los datos de su punto de trabajo para encontrar la mejor solución.",
+        'input_header': "Parámetros de Entrada",
+        'eletric_freq_title': "Frecuencia Eléctrica",
+        'freq_header': "Frecuencia",
+        'flow_header': "**Caudal Deseado**",
+        'pressure_header': "**Altura Deseada**",
+        'show_finder_button': "🔎 Buscar por Modelo de Bomba",
+        'flow_value_label': "Valor del Caudal",
+        'graph_header': "📊 Gráfico de Rendimiento",
+        'drawing_header': "📐 Dibujo Dimensional",
+        'selector_tab_label': "Selector por Punto de Trabajo",
+        'finder_tab_label': "Buscador por Modelo",
+        'parts_list_header': "📋 Lista de Repuestos",
+        'view_graph_button': "Visualizar Gráfico",
+        'close_graph_button': "Cerrar Gráfico",
+        'view_drawing_button': "Visualizar Dibujo",
+        'view_parts_list_button': "Visualizar Lista de Repuestos",
+        'close_view_button': "Cerrar Visualización",
+        'pressure_value_label': "Valor de la Altura",
+        'finder_header': "Busque directamente por el modelo de la bomba",
+        'model_select_label': "1. Seleccione el Modelo",
+        'motor_select_label': "2. Seleccione el Motor (CV)",
+        'find_pump_button': "Buscar Bomba",
+        'download_graph_button': "Descargar Gráfico",
+        'search_with_data_button': "Buscar Bombas con Estos Datos",
+        'search_done_message': "¡Búsqueda completa! Los resultados están en la pestaña 'Selector por Punto de Trabajo'.",
+        'calculator_tab_label': "Calculadora de Sistema",
+        'calculator_header': "Calculadora de Punto de Trabajo",
+        'calculator_intro': "Complete los datos de su sistema hidráulico para calcular el caudal y la presión (altura manométrica total) necesarios para su proyecto.",
+        'section_general_data': "Datos Generales del Proyecto",
+        'desired_flow_rate': "Caudal Requerido",
+        'fluid_temperature': "Temperatura del Fluido (°C)",
+        'section_piping': "Detalles de la Tubería",
+        'pipe_material': "Material de la Tubería",
+        'pipe_diameter': "Diámetro Interno (mm)",
+        'pipe_length': "Longitud Recta Total (m)",
+        'section_elevation': "Elevación (Altura Geométrica)",
+        'suction_elevation': "Altura de Succión (m)",
+        'discharge_elevation': "Altura de Descarga (m)",
+        'elevation_help': "Succión: distancia vertical desde el nivel del agua hasta el eje de la bomba. Descarga: distancia vertical desde el eje de la bomba hasta el punto de entrega final.",
+        'section_fittings': "Accesorios y Pérdidas Menores",
+        'elbow_90': "Codo 90°",
+        'elbow_45': "Codo 45°",
+        'footer_copyright': "© 2025 Higra Mining. Todos los derechos reservados.",
+        'footer_more_info': "Para más información, visite ",
+        'footer_our_website': "nuestro sitio web",
+        'pipe_material_cs': "Acero al Carbono",
+        'pipe_material_ss': "Acero Inoxidable",
+        'pipe_material_di': "Hierro Dúctil",
+        'pipe_material_ci': "Hierro Fundido",
+        'pipe_material_pvc': "PVC",
+        'pipe_material_hdpe': "HDPE (PEAD)",
+        'gate_valve': "Válvula de Compuerta (Abierta)",
+        'check_valve': "Válvula de Retención",
+        'entry_loss': "Pérdida de Entrada (Succión)",
+        'exit_loss': "Pérdida de Salida (Descarga)",
+        'calculate_button': "Calcular Punto de Trabajo",
+        'results_header_calculator': "Resultado del Cálculo",
+        'calculated_head': "Altura Manométrica Total Calculada",
+        'use_data_button': "Usar estos datos para Buscar la Bomba",
+        'flow_unit_label': "Unidad Caudal",
+        'parts_list_button': "Lista de Repuestos",
+        'parts_list_warning': "Atención: La lista de repuestos es un documento de referencia y puede contener variaciones. En caso de duda o para una confirmación más detallada, póngase en contacto.",
+        'download_parts_list_button': "Descargar Lista de Repuestos",
+        'parts_list_unavailable': "Lista de repuestos no disponible. Por favor, póngase en contacto para recibirla.",
+        'pressure_unit_label': "Unidad Altura",
+        'converted_values_info': "Valores convertidos para la búsqueda: **Caudal: {vazao} m³/h** | **Altura: {pressao} mca**",
+        'search_button': "Buscar Mejor Opción",
+        'dimensional_drawing_button': "Dibujo Dimensional",
+        'dimensional_drawing_warning': "Atención: El Dibujo Dimensional es un documento de referencia y puede contener variaciones. En caso de duda o para una confirmación más detallada, por favor, póngase en contacto.",
+        'spinner_text': "Calculando las mejores opciones para {freq}...",
+        'results_header': "Resultados de la Búsqueda",
+        'solution_unique': "✅ Solución encontrada con **BOMBA ÚNICA**:",
+        'solution_parallel': "⚠️ Ninguna bomba única con buen rendimiento. Alternativa: **DOS BOMBAS EN PARALELO**:",
+        'solution_parallel_info': "El caudal y la potencia a continuación son POR BOMBA. Caudal total = 2x.",
+        'solution_series': "⚠️ Ninguna opción única o en paralelo. Alternativa: **DOS BOMBAS EN SERIE**:",
+        'solution_series_info': "La altura a continuación es POR BOMBA. Altura total = 2x.",
         'no_solution_error': "❌ No se encontró ninguna bomba. Pruebe con otros valores.",
         'quote_button_start': "Solicitar Cotización",
         'quote_options_header': "Paso 1: Seleccione Opcionales de la Bomba",
@@ -438,8 +393,8 @@ TRADUCOES = {
         'drawing_unavailable': "Dibujo dimensional no disponible. Contáctenos para recibirlo.",
         'contact_button': "Contacto",
         'system_type_single': "Única",
-        'show_unique_button': "Mostrar Bombas Únicas",
-        'show_systems_button': "Mostrar Sistemas Múltiples",
+        'show_unique_button': "🔍 Mostrar Bombas Únicas",
+        'show_systems_button': "🔄 Mostrar Sistemas Múltiples",
         'view_mode_unique': "Modo de visualización: Bombas Únicas",
         'view_mode_systems': "Modo de visualización: Sistemas Múltiples",
         'no_unique_pumps': "❌ No se encontraron bombas únicas para estos parámetros.",
@@ -463,8 +418,107 @@ TRADUCOES = {
 }
 
 # ===================================================================
-# FUNÇÕES GLOBAIS E CONSTANTES (MANTIDAS ORIGINAIS)
+# LÓGICA DA CALCULADORA DE PONTO DE TRABALHO
 # ===================================================================
+import math
+
+# --- DADOS DE ENGENHARIA ---
+# Rugosidade Absoluta (ε) em metros para diferentes materiais
+RUGOSIDADE_MATERIAL = {
+    'cs': 0.000046,   # Aço Carbono
+    'ss': 0.000002,   # Aço Inox
+    'di': 0.00024,    # Ferro Dúctil
+    'ci': 0.00026,    # Ferro Fundido
+    'pvc': 0.0000015, # PVC
+    'hdpe': 0.0000015 # HDPE (PEAD)
+}
+
+# Coeficientes de Perda Localizada (K) para acessórios comuns
+COEFICIENTE_K_ACESSORIOS = {
+    'cotovelo_90': 0.9,
+    'cotovelo_45': 0.4,
+    'valvula_gaveta': 0.2,
+    'valvula_retencao': 2.5
+}
+
+# Propriedades da Água (Viscosidade Cinemática ν em m²/s) por Temperatura (°C)
+# Tabela simplificada para interpolação linear
+VISCOSIDADE_AGUA = {
+    0: 1.787e-6,
+    10: 1.307e-6,
+    20: 1.004e-6,
+    30: 0.801e-6,
+    40: 0.658e-6,
+    50: 0.553e-6,
+    60: 0.474e-6,
+    70: 0.413e-6,
+    80: 0.365e-6,
+    90: 0.326e-6,
+    100: 0.294e-6
+}
+
+def obter_viscosidade(temp_c):
+    """Calcula a viscosidade cinemática da água por interpolação linear."""
+    temps = sorted(VISCOSIDADE_AGUA.keys())
+    if temp_c <= temps[0]: return VISCOSIDADE_AGUA[temps[0]]
+    if temp_c >= temps[-1]: return VISCOSIDADE_AGUA[temps[-1]]
+    
+    for i, t_upper in enumerate(temps):
+        if temp_c < t_upper:
+            t_lower = temps[i-1]
+            v_lower = VISCOSIDADE_AGUA[t_lower]
+            v_upper = VISCOSIDADE_AGUA[t_upper]
+            # Interpolação
+            return v_lower + (v_upper - v_lower) * (temp_c - t_lower) / (t_upper - t_lower)
+
+def calcular_ponto_trabalho(dados):
+    """
+    Função principal que calcula a Altura Manométrica Total (AMT).
+    Todos os dados de entrada já devem estar no Sistema Internacional (m, m³/s, etc.).
+    """
+    g = 9.81 # Aceleração da gravidade (m/s²)
+    
+    # 1. Propriedades do Sistema e Fluido
+    vazao_m3s = dados['vazao_m3h'] / 3600
+    diametro_m = dados['diametro_mm'] / 1000
+    comprimento_m = dados['comprimento_m']
+    rugosidade_m = RUGOSIDADE_MATERIAL[dados['material_key']]
+    viscosidade_m2s = obter_viscosidade(dados['temperatura_c'])
+
+    # 2. Cálculos Hidráulicos Básicos
+    area_m2 = math.pi * (diametro_m ** 2) / 4
+    velocidade_ms = vazao_m3s / area_m2
+    reynolds = (velocidade_ms * diametro_m) / viscosidade_m2s
+
+    # 3. Fator de Atrito (f) - Usando a fórmula de Swamee-Jain (precisa e não-iterativa)
+    # Válida para 5000 < Re < 10^8 e 10^-6 < ε/D < 10^-2
+    rugosidade_relativa = rugosidade_m / diametro_m
+    fator_atrito = 0.25 / (math.log10((rugosidade_relativa / 3.7) + (5.74 / (reynolds ** 0.9))))**2
+
+    # 4. Cálculo das Perdas de Carga
+    # a) Perda de Carga Contínua (Darcy-Weisbach)
+    perda_continua_m = fator_atrito * (comprimento_m / diametro_m) * (velocidade_ms ** 2) / (2 * g)
+
+    # b) Perda de Carga Localizada
+    k_total = (
+        dados['qtd_cotovelo90'] * COEFICIENTE_K_ACESSORIOS['cotovelo_90'] +
+        dados['qtd_cotovelo45'] * COEFICIENTE_K_ACESSORIOS['cotovelo_45'] +
+        dados['qtd_valv_gaveta'] * COEFICIENTE_K_ACESSORIOS['valvula_gaveta'] +
+        dados['qtd_valv_retencao'] * COEFICIENTE_K_ACESSORIOS['valvula_retencao']
+    )
+    perda_localizada_m = k_total * (velocidade_ms ** 2) / (2 * g)
+
+    # 5. Altura Geométrica
+    altura_geometrica_m = dados['alt_recalque_m'] + dados['alt_succao_m']
+
+    # 6. Altura Manométrica Total (AMT)
+    amt_mca = altura_geometrica_m + perda_continua_m + perda_localizada_m
+    
+    return amt_mca, vazao_m3s * 3600 # Retorna AMT em mca e vazão em m³/h
+
+# -------------------------------------------------------------------
+# Funções de Lógica e Processamento de Dados
+# -------------------------------------------------------------------
 MOTORES_PADRAO = np.array([
     15, 20, 25, 30, 40, 50, 60, 75, 100, 125, 150, 175, 200, 250, 300,
     350, 400, 450, 500, 550, 600
@@ -507,17 +561,9 @@ def carregar_e_processar_dados(caminho_arquivo):
     
     return df
 
-# ===================================================================
-# NOVA FUNÇÃO OTIMIZADA PARA O BUSCADOR POR MODELO
-# ===================================================================
 def buscar_por_modelo_e_motor(df, modelo, motor):
-    """
-    Função rápida e simples para buscar a melhor bomba quando o modelo e o motor já são conhecidos.
-    """
     if df is None or df.empty:
         return pd.DataFrame()
-
-    # Filtro direto e rápido no DataFrame
     df_filtrado = df[
         (df['MODELO'] == modelo) &
         (df['MOTOR PADRÃO (CV)'] == motor)
@@ -526,17 +572,13 @@ def buscar_por_modelo_e_motor(df, modelo, motor):
     if df_filtrado.empty:
         return pd.DataFrame()
         
-    # Pega a melhor opção baseada no maior rendimento
     melhor_opcao = df_filtrado.loc[df_filtrado['RENDIMENTO (%)'].idxmax()]
     
-    # Formata o resultado para ser compatível com o resto da interface
     resultado_df = pd.DataFrame([melhor_opcao])
     
-    # Adiciona as colunas necessárias para compatibilidade com a nova exibição
     resultado_df["TIPO_SISTEMA_CODE"] = "single"
     resultado_df["N_TOTAL_BOMBAS"] = 1
     
-    # Prepara as colunas finais
     colunas_finais = [
        'MODELO', 'ROTOR', 'VAZÃO (M³/H)', 'PRESSÃO (MCA)', 'ERRO_PRESSAO', 'ERRO_RELATIVO',
        'RENDIMENTO (%)', 'POTÊNCIA (HP)', 'MOTOR FINAL (CV)', 
@@ -544,40 +586,29 @@ def buscar_por_modelo_e_motor(df, modelo, motor):
        'ERRO_PRESSAO_ABS', 'ABS_ERRO_RELATIVO' 
     ]
     
-    # Renomeia 'MOTOR PADRÃO (CV)' para 'MOTOR FINAL (CV)' para consistência
     resultado_df = resultado_df.rename(columns={'MOTOR PADRÃO (CV)': 'MOTOR FINAL (CV)'})
-
-    # Remove a coluna de texto 'ROTOR' e renomeia 'ROTORNUM'
     if 'ROTOR' in resultado_df.columns:
         resultado_df = resultado_df.drop(columns=['ROTOR'])
     resultado_df = resultado_df.rename(columns={'ROTORNUM': 'ROTOR'})
     
-    # Garante que apenas colunas existentes sejam retornadas
     colunas_presentes = [col for col in colunas_finais if col in resultado_df.columns]
     
     return resultado_df[colunas_presentes]
 
-# ===================================================================
-# FUNÇÃO PRINCIPAL COM A LÓGICA DE FILTRAGEM CORRIGIDA
-# ===================================================================
 def filtrar_e_classificar(df, vazao, pressao, top_n=5, limite_desempate_rendimento=3):
     if df is None or df.empty: 
         return pd.DataFrame()
 
-    # 1. Filtro inicial por vazão (mais eficiente)
     mask_vazao = df["VAZÃO (M³/H)"] == vazao
     if not mask_vazao.any():
         return pd.DataFrame()
-
     df_vazao = df.loc[mask_vazao].copy()
     
-    # 2. Calcular pressões min/max por modelo sem múltiplos merges
     min_max = df_vazao.groupby('MODELO')['PRESSÃO (MCA)'].agg(['min', 'max']).reset_index()
     min_max.columns = ['MODELO', 'PRESSAO_DO_ROTOR_MIN', 'PRESSAO_DO_ROTOR_MAX']
     
     df_vazao = df_vazao.merge(min_max, on='MODELO', how='left')
     
-    # 3. Calcular limites e filtrar de forma vetorizada
     limite_inferior = df_vazao['PRESSAO_DO_ROTOR_MIN'] * 0.99
     limite_superior = df_vazao['PRESSAO_DO_ROTOR_MAX'] * 1.01
     
@@ -587,16 +618,13 @@ def filtrar_e_classificar(df, vazao, pressao, top_n=5, limite_desempate_rendimen
     if df_filtrado.empty:
         return pd.DataFrame()
 
-    # ETAPA 2: CÁLCULOS BÁSICOS
     df_filtrado["ERRO_PRESSAO"] = df_filtrado["PRESSÃO (MCA)"] - pressao
     df_filtrado["MOTOR FINAL (CV)"] = df_filtrado["POTÊNCIA (HP)"].apply(encontrar_motor_final)
     df_filtrado["ERRO_PRESSAO_ABS"] = df_filtrado["ERRO_PRESSAO"].abs()
     
     if df_filtrado.empty: return pd.DataFrame()
     
-    # ETAPA 3: LÓGICA DE ORDENAÇÃO
     df_grupo_controle = df_filtrado.loc[df_filtrado.groupby('MODELO')['ERRO_PRESSAO_ABS'].idxmin()].copy()
-
     if df_grupo_controle.empty: return pd.DataFrame()
 
     min_erro_rel = df_grupo_controle["ABS_ERRO_RELATIVO"].min()
@@ -627,14 +655,10 @@ def filtrar_e_classificar(df, vazao, pressao, top_n=5, limite_desempate_rendimen
     colunas_finais = [
         'MODELO', 'ROTOR', 'VAZÃO (M³/H)', 'PRESSÃO (MCA)', 'ERRO_PRESSAO', 'ERRO_RELATIVO',
         'RENDIMENTO (%)', 'POTÊNCIA (HP)', 'MOTOR FINAL (CV)', 'ERRO_PRESSAO_ABS', 'ABS_ERRO_RELATIVO'
-    ]    
-    
-    # Para evitar o erro de coluna duplicada, removemos a coluna 'ROTOR' original (texto)
-    # antes de renomear a coluna numérica 'ROTORNUM' para 'ROTOR'.
+    ]   
     if 'ROTOR' in df_resultado.columns:
         df_resultado = df_resultado.drop(columns=['ROTOR'])
         
-    # Renomeando ROTORNUM para ROTOR para corresponder à sua saída desejada
     df_resultado = df_resultado.rename(columns={'ROTORNUM': 'ROTOR'})
     
     colunas_presentes = [col for col in colunas_finais if col in df_resultado.columns]
@@ -645,14 +669,11 @@ def selecionar_bombas(df, vazao_desejada, pressao_desejada):
     if df is None or df.empty:
         return pd.DataFrame(), pd.DataFrame()
     
-    # NOVAS VARIÁVEIS PARA CONTROLAR O NÚMERO DE RESULTADOS
     top_n_unicas = 3
     top_n_multiplas = 5
     
-    # === ETAPA 1: Buscar todas as opções possíveis ===
     todas_opcoes = []
     
-    # 1.1 Bombas únicas
     resultado_unico = filtrar_e_classificar(df, vazao_desejada, pressao_desejada, top_n=10)
     if not resultado_unico.empty:
         resultado_unico["TIPO_SISTEMA_CODE"] = "single"
@@ -660,10 +681,8 @@ def selecionar_bombas(df, vazao_desejada, pressao_desejada):
         resultado_unico["PRIORIDADE_TIPO"] = 1
         todas_opcoes.append(resultado_unico)
     
-    # 1.2 Sistemas com múltiplas bombas
     sistemas_multiplos = []
     
-    # Paralelo (2 a 10 bombas)
     for num_paralelo in range(2, 16):
         vazao_paralelo = vazao_desejada / num_paralelo
         resultado_paralelo = filtrar_e_classificar(df, vazao_paralelo, pressao_desejada, top_n=top_n_multiplas)
@@ -673,7 +692,6 @@ def selecionar_bombas(df, vazao_desejada, pressao_desejada):
             resultado_paralelo["PRIORIDADE_TIPO"] = 2
             sistemas_multiplos.append(resultado_paralelo)
     
-    # Série (2 bombas)
     pressao_serie = pressao_desejada / 2
     resultado_serie = filtrar_e_classificar(df, vazao_desejada, pressao_serie, top_n=top_n_multiplas)
     if not resultado_serie.empty:
@@ -682,7 +700,6 @@ def selecionar_bombas(df, vazao_desejada, pressao_desejada):
         resultado_serie["PRIORIDADE_TIPO"] = 3
         sistemas_multiplos.append(resultado_serie)
     
-    # Misto (série em paralelo)
     for num_conjuntos in range(2, 6):
         vazao_misto = vazao_desejada / num_conjuntos
         pressao_misto = pressao_desejada / 2
@@ -695,7 +712,6 @@ def selecionar_bombas(df, vazao_desejada, pressao_desejada):
             resultado_misto["PRIORIDADE_TIPO"] = 4
             sistemas_multiplos.append(resultado_misto)
     
-    # Combinar todas as opções em suas respectivas categorias
     if todas_opcoes:
         df_unicas = pd.concat(todas_opcoes, ignore_index=True)
     else:
@@ -703,7 +719,6 @@ def selecionar_bombas(df, vazao_desejada, pressao_desejada):
         
     if sistemas_multiplos:
         df_multiplas = pd.concat(sistemas_multiplos, ignore_index=True)
-        # Garantir apenas uma opção por modelo (a com menos bombas)
         df_multiplas = df_multiplas.sort_values(
             by=["MODELO", "N_TOTAL_BOMBAS", "RENDIMENTO (%)"], 
             ascending=[True, True, False]
@@ -711,9 +726,6 @@ def selecionar_bombas(df, vazao_desejada, pressao_desejada):
     else:
         df_multiplas = pd.DataFrame()
     
-    # === ETAPA 2: Seleção em cascata para CADA CATEGORIA ===
-    
-    # 2.1 Processar bombas únicas
     resultados_unicas_finais = []
     if not df_unicas.empty:
         candidatas_unicas = df_unicas.copy()
@@ -733,7 +745,6 @@ def selecionar_bombas(df, vazao_desejada, pressao_desejada):
             modelo_remover = melhor_unica["MODELO"].iloc[0]
             candidatas_unicas = candidatas_unicas[candidatas_unicas["MODELO"] != modelo_remover]
     
-    # 2.2 Processar sistemas múltiplos
     resultados_multiplos_finais = []
     if not df_multiplas.empty:
         candidatas_multiplas = df_multiplas.copy()
@@ -753,16 +764,12 @@ def selecionar_bombas(df, vazao_desejada, pressao_desejada):
             modelo_remover = melhor_multipla["MODELO"].iloc[0]
             candidatas_multiplas = candidatas_multiplas[candidatas_multiplas["MODELO"] != modelo_remover]
     
-    # === ETAPA 3: Preparar e retornar os resultados finais ===
-    
-    # Prepara o DataFrame de bombas únicas
     if resultados_unicas_finais:
         df_unicas_final = pd.concat(resultados_unicas_finais, ignore_index=True)
         df_unicas_final = df_unicas_final.drop(columns=['ERRO_PRESSAO_ABS', 'ABS_ERRO_RELATIVO', 'PRIORIDADE_TIPO'], errors='ignore')
     else:
         df_unicas_final = pd.DataFrame()
     
-    # Prepara o DataFrame de sistemas múltiplos
     if resultados_multiplos_finais:
         df_multiplas_final = pd.concat(resultados_multiplos_finais, ignore_index=True)
         df_multiplas_final = df_multiplas_final.drop(columns=['ERRO_PRESSAO_ABS', 'ABS_ERRO_RELATIVO', 'PRIORIDADE_TIPO'], errors='ignore')
@@ -772,394 +779,37 @@ def selecionar_bombas(df, vazao_desejada, pressao_desejada):
     return df_unicas_final, df_multiplas_final
 
 # ===================================================================
-# CONFIGURAÇÕES DE IDIOMA
+# FUNÇÃO PARA EXIBIR RESULTADOS DE BUSCA (COM BOTÃO DE DOWNLOAD DO GRÁFICO)
 # ===================================================================
+def exibir_resultados_busca(T, key_prefix):
+    """Função dedicada a exibir a tabela de resultados e documentos da busca de bombas."""
+    resultado = (st.session_state.get('resultado_sistemas_multiplos', pd.DataFrame()) 
+                 if st.session_state.get('modo_visualizacao') == 'multiplas' 
+                 else st.session_state.get('resultado_bombas_unicas', pd.DataFrame()))
 
-query_params = st.query_params
-if 'lang' in query_params:
-    lang_from_url = query_params['lang']
-    if lang_from_url in ['pt', 'en', 'es']:
-        st.session_state.lang = lang_from_url
-
-T = TRADUCOES[st.session_state.lang]
-
-# ===================================================================
-# CONSTANTES
-# ===================================================================
-EMAIL_DESTINO = "seu.email@higra.com.br"
-ARQUIVOS_DADOS = { "60Hz": "60Hz.xlsx", "50Hz": "50Hz.xlsx" }
-FATORES_VAZAO = { "m³/h": 1.0, "gpm (US)": 0.2271247, "l/s": 3.6 }
-FATORES_PRESSAO = { "mca": 1.0, "ftH₂O": 0.3048, "bar": 10.197, "kgf/cm²": 10.0 }
-
-# ===================================================================
-# CABEÇALHO PRINCIPAL
-# ===================================================================
-
-# Container principal do aplicativo
-with st.container():
-    st.markdown('<div class="main-container">', unsafe_allow_html=True)
+    st.header(T['results_header'])
     
-    # Cabeçalho do aplicativo
-    st.markdown("""
-    <div class="app-header">
-        <h1 class="app-title">Higra Mining</h1>
-        <p class="app-subtitle">Seletor de Bombas Hidráulicas Profissional</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Seção de seleção de idioma
-    bandeiras = {
-        "pt": {"nome": "PT", "img": "brasil.png"},
-        "en": {"nome": "EN", "img": "uk.png"},
-        "es": {"nome": "ES", "img": "espanha.png"}
-    }
-
-    col1, col2, col3 = st.columns([1, 2, 1])
-    
-    with col2:
-        st.markdown('<div class="section-container">', unsafe_allow_html=True)
-        st.markdown('<div class="section-title">🌐 Selecionar Idioma</div>', unsafe_allow_html=True)
-        
-        flag_cols = st.columns(len(bandeiras))
-        for i, (lang_code, info) in enumerate(bandeiras.items()):
-            with flag_cols[i]:
-                classe_css = "selecionada" if st.session_state.lang == lang_code else ""
-                img_base64 = image_to_base64(info["img"])
-
-                st.markdown(f"""
-                <a href="?lang={lang_code}" target="_self" style="text-decoration: none;">
-                    <div style="display: flex; flex-direction: column; align-items: center; font-family: 'Inter', sans-serif; font-weight: bold; color: white;">
-                        <span style="margin-bottom: 8px; font-size: 0.9rem;">{info['nome']}</span>
-                        <div class="bandeira-container {classe_css}">
-                            <img src="data:image/png;base64,{img_base64}" class="bandeira-img">
-                        </div>
-                    </div>
-                </a>
-                """, unsafe_allow_html=True)
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # Mensagem de boas-vindas
-    st.markdown(f"""
-    <div class="section-container">
-        <div class="section-title">👋 {T['welcome_message'].split('!')[0]}!</div>
-        <p style="color: rgba(255, 255, 255, 0.8); font-size: 1.1rem; line-height: 1.6;">
-            {T['welcome_message'].split('! ')[1]}
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Nota de performance
-    st.markdown(f"""
-    <div style="background: linear-gradient(45deg, rgba(255, 193, 7, 0.1), rgba(255, 152, 0, 0.1)); 
-                border-left: 4px solid #FFC107; border-radius: 10px; padding: 1rem; margin: 1rem 0;">
-        <p style="color: rgba(255, 255, 255, 0.9); margin: 0; font-weight: 500;">
-            📊 {T['performance_note']}
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-
-# ===================================================================
-# SEÇÃO PRINCIPAL DE ENTRADA
-# ===================================================================
-
-with st.container():
-    st.markdown('<div class="section-container">', unsafe_allow_html=True)
-    st.markdown(f'<div class="section-title">⚙️ {T["input_header"]}</div>', unsafe_allow_html=True)
-    
-    # Cria as duas abas para separar as formas de busca
-    tab_seletor, tab_buscador = st.tabs([f"🎯 {T['selector_tab_label']}", f"🔍 {T['finder_tab_label']}"])
-
-    # --- Aba 1: Seletor por Ponto de Trabalho ---
-    with tab_seletor:
-        # Container para frequência
-        with st.container():
-            st.markdown(f"""
-            <div style="background: rgba(255, 255, 255, 0.05); border-radius: 10px; padding: 1rem; margin: 1rem 0;">
-                <h4 style="color: white; margin-bottom: 1rem;">⚡ {T['eletric_freq_title']}</h4>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            col_freq, col_vazio = st.columns([1, 3])
-            with col_freq:
-                frequencia_selecionada = st.radio(
-                    T['freq_header'], 
-                    list(ARQUIVOS_DADOS.keys()), 
-                    horizontal=True, 
-                    label_visibility="collapsed",
-                    key='freq_seletor'
-                )
-
-        # Carrega os dados para o SELETOR
-        caminho_arquivo_selecionado = ARQUIVOS_DADOS[frequencia_selecionada]
-        df_processado = carregar_e_processar_dados(caminho_arquivo_selecionado)
-
-        # Container para parâmetros de entrada
-        st.markdown(f"""
-        <div style="background: rgba(255, 255, 255, 0.05); border-radius: 10px; padding: 1rem; margin: 1rem 0;">
-            <h4 style="color: white; margin-bottom: 1rem;">📊 Parâmetros de Operação</h4>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        col_vazao, col_pressao = st.columns(2)
-        
-        with col_vazao:
-            st.markdown(f"""
-            <div class="metric-container hover-effect">
-                <div class="metric-label">💧 {T['flow_header']}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            sub_col_v1, sub_col_v2 = st.columns([2,1])
-            with sub_col_v1: 
-                vazao_bruta = st.number_input(
-                    T['flow_value_label'], 
-                    min_value=0.1, 
-                    value=100.0, 
-                    step=10.0, 
-                    label_visibility="collapsed", 
-                    key='vazao_bruta'
-                )
-            with sub_col_v2: 
-                unidade_vazao = st.selectbox(
-                    T['flow_unit_label'], 
-                    list(FATORES_VAZAO.keys()), 
-                    label_visibility="collapsed", 
-                    key='unidade_vazao'
-                )
-        
-        with col_pressao:
-            st.markdown(f"""
-            <div class="metric-container hover-effect">
-                <div class="metric-label">🏔️ {T['pressure_header']}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            sub_col_p1, sub_col_p2 = st.columns([2,1])
-            with sub_col_p1: 
-                pressao_bruta = st.number_input(
-                    T['pressure_value_label'], 
-                    min_value=0.1, 
-                    value=100.0, 
-                    step=5.0, 
-                    label_visibility="collapsed", 
-                    key='pressao_bruta'
-                )
-            with sub_col_p2: 
-                unidade_pressao = st.selectbox(
-                    T['pressure_unit_label'], 
-                    list(FATORES_PRESSAO.keys()), 
-                    label_visibility="collapsed", 
-                    key='unidade_pressao'
-                )
-
-        # Cálculos de conversão
-        vazao_para_busca = round(vazao_bruta * FATORES_VAZAO[unidade_vazao])
-        pressao_para_busca = round(pressao_bruta * FATORES_PRESSAO[unidade_pressao])
-        
-        # Exibição dos valores convertidos
-        st.markdown(f"""
-        <div style="background: linear-gradient(45deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)); 
-                    border-radius: 10px; padding: 1rem; margin: 1rem 0; text-align: center;">
-            <p style="color: white; margin: 0; font-weight: 500;">
-                🔄 {T['converted_values_info'].format(vazao=vazao_para_busca, pressao=pressao_para_busca)}
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # Botão de busca estilizado
-        st.markdown('<div style="margin: 2rem 0;">', unsafe_allow_html=True)
-        if st.button(f"🚀 {T['search_button']}", use_container_width=True, key='btn_seletor', type="primary"):
-            # Reseta todos os estados ao iniciar uma nova busca
-            st.session_state.last_used_freq = frequencia_selecionada
-            st.session_state.resultado_busca = None
-            st.session_state.mostrar_grafico = False
-            st.session_state.mostrar_desenho = False
-            st.session_state.mostrar_lista_pecas = False
-            st.session_state.mostrar_desenho_visualizacao = False
-            st.session_state.mostrar_lista_visualizacao = False
-            
-            with st.spinner(T['spinner_text'].format(freq=frequencia_selecionada)):
-                bombas_unicas, sistemas_multiplos = selecionar_bombas(df_processado, vazao_para_busca, pressao_para_busca)
-                
-                # Armazenar ambos os resultados na sessão
-                st.session_state.resultado_bombas_unicas = bombas_unicas
-                st.session_state.resultado_sistemas_multiplos = sistemas_multiplos
-                
-                # Determinar o modo inicial com base na disponibilidade de resultados
-                if not bombas_unicas.empty:
-                    st.session_state.modo_visualizacao = 'unicas'
-                    st.session_state.resultado_busca = {"resultado": bombas_unicas}
-                elif not sistemas_multiplos.empty:
-                    st.session_state.modo_visualizacao = 'multiplas'
-                    st.session_state.resultado_busca = {"resultado": sistemas_multiplos}
-                else:
-                    st.session_state.modo_visualizacao = 'unicas'
-                    st.session_state.resultado_busca = {"resultado": pd.DataFrame()}
-            
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # --- Aba 2: Buscador por Modelo ---
-    with tab_buscador:
-        st.markdown(f"""
-        <div style="background: rgba(255, 255, 255, 0.05); border-radius: 10px; padding: 1rem; margin: 1rem 0;">
-            <h4 style="color: white; margin-bottom: 1rem;">🔍 {T['finder_header']}</h4>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        col_freq_busca, col_modelo_busca, col_motor_busca = st.columns(3)
-        
-        with col_freq_busca:
-            st.markdown('<div class="metric-container"><div class="metric-label">⚡ Frequência</div></div>', unsafe_allow_html=True)
-            frequencia_buscador = st.radio(
-                T['freq_header'], 
-                list(ARQUIVOS_DADOS.keys()), 
-                horizontal=True, 
-                key='freq_buscador',
-                label_visibility="collapsed"
-            )
-
-        # Carrega dados para o buscador
-        caminho_buscador = ARQUIVOS_DADOS[frequencia_buscador]
-        df_buscador = carregar_e_processar_dados(caminho_buscador)
-
-        if df_buscador is not None:
-            with col_modelo_busca:
-                st.markdown('<div class="metric-container"><div class="metric-label">🏭 Modelo</div></div>', unsafe_allow_html=True)
-                lista_modelos = ["-"] + sorted(df_buscador['MODELO'].unique())
-                modelo_selecionado_buscador = st.selectbox(
-                    T['model_select_label'],
-                    lista_modelos,
-                    key='modelo_buscador',
-                    label_visibility="collapsed"
-                )
-
-            with col_motor_busca:
-                st.markdown('<div class="metric-container"><div class="metric-label">⚙️ Motor (CV)</div></div>', unsafe_allow_html=True)
-                motor_selecionado_buscador = None
-                if modelo_selecionado_buscador and modelo_selecionado_buscador != "-":
-                    motores_unicos = df_buscador[df_buscador['MODELO'] == modelo_selecionado_buscador]['MOTOR PADRÃO (CV)'].unique()
-                    motores_disponiveis = sorted([motor for motor in motores_unicos if pd.notna(motor)])
-                    
-                    if motores_disponiveis:
-                        motor_selecionado_buscador = st.selectbox(
-                            T['motor_select_label'],
-                            motores_disponiveis,
-                            key='motor_buscador',
-                            label_visibility="collapsed"
-                        )
-                    else:
-                        st.selectbox(T['motor_select_label'], ["-"], disabled=True, label_visibility="collapsed")
-                else:
-                    st.selectbox(T['motor_select_label'], ["-"], disabled=True, label_visibility="collapsed")
-
-            # Botão de busca por modelo
-            st.markdown('<div style="margin: 2rem 0;">', unsafe_allow_html=True)
-            if modelo_selecionado_buscador and modelo_selecionado_buscador != "-" and motor_selecionado_buscador:
-                if st.button(f"🎯 {T['find_pump_button']}", use_container_width=True, key='btn_find_pump', type="primary"):
-                    # Limpa todos os resultados anteriores para uma busca limpa
-                    st.session_state.last_used_freq = frequencia_buscador
-                    st.session_state.resultado_bombas_unicas = None
-                    st.session_state.resultado_sistemas_multiplos = None
-                    st.session_state.resultado_busca = None
-                    st.session_state.mostrar_grafico = False
-                    st.session_state.mostrar_desenho = False
-                    st.session_state.mostrar_lista_pecas = False
-                    st.session_state.mostrar_desenho_visualizacao = False
-                    st.session_state.mostrar_lista_visualizacao = False
-
-                    # Chama a função de busca por modelo
-                    resultado = buscar_por_modelo_e_motor(df_buscador, modelo_selecionado_buscador, motor_selecionado_buscador)
-                    
-                    if not resultado.empty:
-                        st.session_state.resultado_bombas_unicas = resultado
-                        st.session_state.resultado_sistemas_multiplos = pd.DataFrame()
-                        st.session_state.modo_visualizacao = 'unicas'
-                        st.session_state.resultado_busca = {"resultado": resultado}
-                    else:
-                        st.session_state.resultado_busca = None
-                        st.error(T['no_solution_error'])
-                    
-                    st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# ===================================================================
-# SEÇÃO DE RESULTADOS
-# ===================================================================
-
-if st.session_state.resultado_busca is not None:
-    # Determina qual resultado exibir com base no modo atual
-    if st.session_state.get('modo_visualizacao') == 'multiplas':
-        resultado = st.session_state.get('resultado_sistemas_multiplos', pd.DataFrame())
-    else:
-        resultado = st.session_state.get('resultado_bombas_unicas', pd.DataFrame())
-
-    # Container de resultados
-    with st.container():
-        st.markdown('<div class="section-container">', unsafe_allow_html=True)
-        st.markdown(f'<div class="section-title">🎯 {T["results_header"]}</div>', unsafe_allow_html=True)
-        
-        # Indicador do modo de visualização
-        modo_atual = "Bombas Únicas" if st.session_state.get('modo_visualizacao') == 'unicas' else "Sistemas Múltiplos"
-        st.markdown(f"""
-        <div style="background: linear-gradient(45deg, rgba(76, 175, 80, 0.1), rgba(139, 195, 74, 0.1)); 
-                    border-radius: 10px; padding: 1rem; margin: 1rem 0; text-align: center;">
-            <p style="color: white; margin: 0; font-weight: 500;">
-                👁️ Modo de visualização: {modo_atual}
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # Botões de alternância
-        tem_unicas = st.session_state.get('resultado_bombas_unicas') is not None and not st.session_state.resultado_bombas_unicas.empty
-        tem_multiplas = st.session_state.get('resultado_sistemas_multiplos') is not None and not st.session_state.resultado_sistemas_multiplos.empty
+    with st.container(border=True):
+        tem_unicas = not st.session_state.get('resultado_bombas_unicas', pd.DataFrame()).empty
+        tem_multiplas = not st.session_state.get('resultado_sistemas_multiplos', pd.DataFrame()).empty
         
         if tem_unicas or tem_multiplas:
             col1, col2 = st.columns(2)
             with col1:
-                disabled_unique = not tem_unicas or st.session_state.modo_visualizacao == 'unicas'
-                if st.button(f"🔍 {T['show_unique_button']}", 
-                            use_container_width=True,
-                            disabled=disabled_unique,
-                            help="Exibir bombas únicas" if tem_unicas else "Nenhuma bomba única disponível"):
+                if st.button(T['show_unique_button'], use_container_width=True, disabled=not tem_unicas or st.session_state.modo_visualizacao == 'unicas', key=f"{key_prefix}_btn_unicas"):
                     st.session_state.modo_visualizacao = 'unicas'
                     st.rerun()
             with col2:
-                disabled_multiple = not tem_multiplas or st.session_state.modo_visualizacao == 'multiplas'
-                if st.button(f"🔄 {T['show_systems_button']}", 
-                            use_container_width=True,
-                            disabled=disabled_multiple,
-                            help="Exibir sistemas múltiplos" if tem_multiplas else "Nenhum sistema múltiplo disponível"):
+                if st.button(T['show_systems_button'], use_container_width=True, disabled=not tem_multiplas or st.session_state.modo_visualizacao == 'multiplas', key=f"{key_prefix}_btn_multiplas"):
                     st.session_state.modo_visualizacao = 'multiplas'
                     st.rerun()
 
-        # Verifica se a tabela selecionada está vazia
         if resultado.empty:
-            if st.session_state.get('modo_visualizacao') == 'unicas':
-                st.markdown(f"""
-                <div style="background: linear-gradient(45deg, rgba(244, 67, 54, 0.1), rgba(233, 30, 99, 0.1)); 
-                            border-left: 4px solid #f44336; border-radius: 10px; padding: 1rem; margin: 1rem 0;">
-                    <p style="color: rgba(255, 255, 255, 0.9); margin: 0; font-weight: 500;">
-                        ❌ {T['no_unique_pumps']}
-                    </p>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown(f"""
-                <div style="background: linear-gradient(45deg, rgba(244, 67, 54, 0.1), rgba(233, 30, 99, 0.1)); 
-                            border-left: 4px solid #f44336; border-radius: 10px; padding: 1rem; margin: 1rem 0;">
-                    <p style="color: rgba(255, 255, 255, 0.9); margin: 0; font-weight: 500;">
-                        ❌ {T['no_systems_found']}
-                    </p>
-                </div>
-                """, unsafe_allow_html=True)
+            if st.session_state.get('modo_visualizacao') == 'unicas': st.error(T['no_unique_pumps'])
+            else: st.error(T['no_systems_found'])
         else:
-            # Processamento da tabela de resultados
+            # ... (O CÓDIGO DA TABELA CONTINUA IGUAL, NÃO PRECISA MUDAR) ...
             resultado_exibicao = resultado.copy()
-
             def traduzir_tipo_sistema(row):
                 code = row.get('TIPO_SISTEMA_CODE', 'single')
                 if code == "single": return T['system_type_single']
@@ -1167,464 +817,520 @@ if st.session_state.resultado_busca is not None:
                 if code == "series": return T['system_type_series']
                 if code == "combined": return T['system_type_combined'].format(int(row.get('N_TOTAL_BOMBAS', 4)), int(row.get('N_PARALELO', 2)))
                 return ""
-                
+            
             resultado_exibicao[T['system_type_header']] = resultado_exibicao.apply(traduzir_tipo_sistema, axis=1)
-            resultado_exibicao = resultado_exibicao.drop(columns=['TIPO_SISTEMA_CODE', 'N_TOTAL_BOMBAS', 'N_PARALELO'], errors='ignore')
-            resultado_exibicao = resultado_exibicao.rename(columns={
-                "RENDIMENTO (%)": "RENDIMENTO", 
-                "POTÊNCIA (HP)": "POTÊNCIA", 
-                "MOTOR FINAL (CV)": "MOTOR FINAL", 
-                "ERRO_PRESSAO": T['pressure_error_header'], 
-                "ERRO_RELATIVO": T['relative_error_header']
-            })
+            resultado_exibicao.drop(columns=['TIPO_SISTEMA_CODE', 'N_TOTAL_BOMBAS', 'N_PARALELO'], errors='ignore', inplace=True)
+            resultado_exibicao.rename(columns={
+                "RENDIMENTO (%)": "RENDIMENTO", "POTÊNCIA (HP)": "POTÊNCIA", "MOTOR FINAL (CV)": "MOTOR FINAL",
+                "ERRO_PRESSAO": T['pressure_error_header'], "ERRO_RELATIVO": T['relative_error_header']
+            }, inplace=True)
             
             resultado_exibicao.insert(0, "Ranking", [f"{i+1}º" for i in range(len(resultado_exibicao))])
             
-            # Seleção da bomba
             opcoes_ranking = [f"{i+1}º" for i in range(len(resultado_exibicao))]
+            st.radio("Selecione a bomba:", options=opcoes_ranking, index=0, horizontal=True, label_visibility="collapsed", key=f'radio_selecao_{key_prefix}_{st.session_state.modo_visualizacao}')
             
-            st.markdown("""
-            <div style="background: rgba(255, 255, 255, 0.05); border-radius: 10px; padding: 1rem; margin: 1rem 0;">
-                <h4 style="color: white; margin-bottom: 1rem;">🏆 Selecione a bomba:</h4>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            selecao_ranking = st.radio(
-                "Selecione a bomba:", 
-                options=opcoes_ranking, 
-                index=0, 
-                horizontal=True, 
-                label_visibility="collapsed", 
-                key=f'radio_selecao_{st.session_state.modo_visualizacao}'
-            )
-            
-            # Formatação de números
             for col in ['RENDIMENTO', 'POTÊNCIA', 'MOTOR FINAL', T['pressure_error_header'], T['relative_error_header']]:
                 if col in resultado_exibicao.columns:
                     resultado_exibicao[col] = resultado_exibicao[col].map('{:,.2f}'.format)
             
-            # Exibição da tabela
-            st.dataframe(
-                resultado_exibicao, 
-                hide_index=True, 
-                use_container_width=True, 
-                column_order=[
-                    'Ranking', T['system_type_header'], 'MODELO', 'ROTOR', 
-                    'RENDIMENTO', 'POTÊNCIA', 'MOTOR FINAL'
-                ]
-            )
-            
-            # Dados da bomba selecionada
-            indice_selecionado = opcoes_ranking.index(selecao_ranking)
-            melhor_bomba = resultado.iloc[indice_selecionado]
-            modelo_selecionado = melhor_bomba['MODELO']
-            try:
-                motor_alvo = int(melhor_bomba['MOTOR FINAL (CV)'])
-            except (ValueError, TypeError):
-                motor_alvo = 0
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # ===================================================================
-    # SEÇÕES DE DOCUMENTOS (GRÁFICO, DESENHO, LISTA DE PEÇAS)
-    # ===================================================================
+            st.dataframe(resultado_exibicao, hide_index=True, use_container_width=True, column_order=['Ranking', T['system_type_header'], 'MODELO', 'ROTOR', 'RENDIMENTO', 'POTÊNCIA', 'MOTOR FINAL'])
     
     if not resultado.empty:
-        frequencia_str = st.session_state.get('last_used_freq', '60Hz')
+        st.subheader("Documentação Técnica")
         
-        # Seção do Gráfico
-        with st.container():
-            st.markdown('<div class="section-container hover-effect">', unsafe_allow_html=True)
-            st.markdown(f'<div class="section-title">📊 {T["graph_header"]}</div>', unsafe_allow_html=True)
-            
-            caminho_pdf = f"pdfs/{frequencia_str}/{modelo_selecionado}.pdf"
-            
-            if st.button(f"📈 {T['view_graph_button']}", key="btn_visualizar_grafico", use_container_width=True, type="secondary"):
-                st.session_state.mostrar_grafico = True
-            
-            if st.session_state.get('mostrar_grafico', False):
-                st.markdown(f"""
-                <div style="background: rgba(255, 255, 255, 0.03); border-radius: 10px; padding: 1rem; margin: 1rem 0;">
-                    <h4 style="color: white; text-align: center;">📊 Modelo: {modelo_selecionado}</h4>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                mostrar_pdf(caminho_pdf, legenda="Gráfico de Performance")
-                
-                if st.button(f"❌ {T['close_graph_button']}", key="btn_fechar_grafico", use_container_width=True):
-                    st.session_state.mostrar_grafico = False
-                    st.rerun()
-            
-            st.markdown('</div>', unsafe_allow_html=True)
+        indice_selecionado = opcoes_ranking.index(st.session_state[f'radio_selecao_{key_prefix}_{st.session_state.modo_visualizacao}'])
+        bomba_selecionada = resultado.iloc[indice_selecionado]
+        modelo_selecionado = bomba_selecionada['MODELO']
+        try:
+            motor_alvo = int(bomba_selecionada['MOTOR FINAL (CV)'])
+        except (ValueError, TypeError):
+            motor_alvo = 0
 
-        # Seção do Desenho Dimensional
-        with st.container():
-            st.markdown('<div class="section-container hover-effect">', unsafe_allow_html=True)
-            st.markdown(f'<div class="section-title">📐 {T["drawing_header"]}</div>', unsafe_allow_html=True)
-            
-            if st.button(f"📋 {T['dimensional_drawing_button']}", use_container_width=True):
-                st.session_state.mostrar_desenho = not st.session_state.get('mostrar_desenho', False)
+        col_grafico, col_desenho = st.columns(2)
 
-            if st.session_state.get('mostrar_desenho', False):
-                st.markdown(f"""
-                <div style="background: linear-gradient(45deg, rgba(255, 193, 7, 0.1), rgba(255, 152, 0, 0.1)); 
-                            border-left: 4px solid #FFC107; border-radius: 10px; padding: 1rem; margin: 1rem 0;">
-                    <p style="color: rgba(255, 255, 255, 0.9); margin: 0;">
-                        ⚠️ {T['dimensional_drawing_warning']}
-                    </p>
-                </div>
-                """, unsafe_allow_html=True)
+        with col_grafico:
+            with st.container(border=True):
+                st.header(T['graph_header'])
+                frequencia_str = st.session_state.get('last_used_freq', '60Hz')
+                caminho_pdf_grafico = Path(f"pdfs/{frequencia_str}/{modelo_selecionado}.pdf")
                 
-                desenho_base_path = Path("Desenhos")
-                caminho_desenho_final = None
+                # --- INÍCIO DA MUDANÇA ---
+                if st.button(T['view_graph_button'], key=f"btn_grafico_{key_prefix}", use_container_width=True):
+                    st.session_state.mostrar_grafico = not st.session_state.get('mostrar_grafico', False)
                 
-                if desenho_base_path.exists():
-                    desenhos_candidatos = {}
-                    for path_arquivo in desenho_base_path.glob(f"{modelo_selecionado}*.pdf"):
-                        nome_sem_ext = path_arquivo.stem
-                        partes = nome_sem_ext.split('_')
-                        if len(partes) == 2:
-                            try:
-                                motor_no_arquivo = int(partes[1])
-                                desenhos_candidatos[motor_no_arquivo] = path_arquivo
-                            except ValueError:
-                                continue
+                if st.session_state.get('mostrar_grafico', False):
+                    if caminho_pdf_grafico.exists():
+                        # Adiciona o botão de download
+                        with open(caminho_pdf_grafico, "rb") as pdf_file:
+                            st.download_button(
+                                label=T['download_graph_button'], 
+                                data=pdf_file,
+                                file_name=caminho_pdf_grafico.name,
+                                mime="application/pdf",
+                                use_container_width=True
+                            )
+                        # Mostra a pré-visualização
+                        mostrar_pdf(caminho_pdf_grafico, legenda="Gráfico de Performance")
+                    else:
+                        st.warning("Gráfico de performance indisponível para este modelo.")
+                # --- FIM DA MUDANÇA ---
+        
+        with col_desenho:
+            # ... (O CÓDIGO DO DESENHO DIMENSIONAL CONTINUA IGUAL, NÃO PRECISA MUDAR) ...
+            with st.container(border=True):
+                st.header(T['drawing_header'])
+                
+                if st.button(T['dimensional_drawing_button'], key=f"btn_desenho_{key_prefix}", use_container_width=True):
+                    st.session_state.mostrar_desenho = not st.session_state.get('mostrar_desenho', False)
+
+                if st.session_state.get('mostrar_desenho', False):
+                    desenho_base_path = Path("Desenhos")
+                    caminho_desenho_final = None
+                    if desenho_base_path.exists():
+                        desenhos_candidatos = {int(p.stem.split('_')[1]): p for p in desenho_base_path.glob(f"{modelo_selecionado}*.pdf") if len(p.stem.split('_')) == 2 and p.stem.split('_')[1].isdigit()}
+                        if desenhos_candidatos:
+                            motor_mais_proximo = min(desenhos_candidatos.keys(), key=lambda m: abs(m - motor_alvo))
+                            caminho_desenho_final = desenhos_candidatos[motor_mais_proximo]
+                        else:
+                            caminho_geral = desenho_base_path / f"{modelo_selecionado}.pdf"
+                            if caminho_geral.exists():
+                                caminho_desenho_final = caminho_geral
                     
-                    if desenhos_candidatos:
-                        motor_mais_proximo = min(
-                            desenhos_candidatos.keys(),
-                            key=lambda motor: abs(motor - motor_alvo)
-                        )
-                        caminho_desenho_final = desenhos_candidatos[motor_mais_proximo]
-                
-                if not caminho_desenho_final:
-                    caminho_geral = desenho_base_path / f"{modelo_selecionado}.pdf"
-                    if caminho_geral.exists():
-                        caminho_desenho_final = caminho_geral
-                
-                if caminho_desenho_final:
-                    if st.button(f"👁️ {T['view_drawing_button']}", use_container_width=True, type="secondary"):
-                        st.session_state.mostrar_desenho_visualizacao = not st.session_state.get('mostrar_desenho_visualizacao', False)
-
-                    if st.session_state.get('mostrar_desenho_visualizacao', False):
+                    if caminho_desenho_final:
+                        with open(caminho_desenho_final, "rb") as pdf_file:
+                            st.download_button(label=T['download_drawing_button'], data=pdf_file, file_name=caminho_desenho_final.name, mime="application/pdf", use_container_width=True)
                         mostrar_pdf(caminho_desenho_final, legenda="Desenho Dimensional")
-                        if st.button(f"❌ {T['close_view_button']}", use_container_width=True, key='fechar_desenho'):
-                            st.session_state.mostrar_desenho_visualizacao = False
-                            st.rerun()
-                    
-                    with open(caminho_desenho_final, "rb") as pdf_file:
-                        st.download_button(
-                            label=f"📥 {T['download_drawing_button']}",
-                            data=pdf_file,
-                            file_name=caminho_desenho_final.name,
-                            mime="application/pdf",
-                            use_container_width=True
-                        )
-                else:
-                    st.markdown(f"""
-                    <div style="background: linear-gradient(45d, rgba(244, 67, 54, 0.1), rgba(233, 30, 99, 0.1)); 
-                                border-left: 4px solid #f44336; border-radius: 10px; padding: 1rem; margin: 1rem 0;">
-                        <p style="color: rgba(255, 255, 255, 0.9); margin: 0;">
-                            ⚠️ {T['drawing_unavailable']}
-                        </p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                # Botão de contato estilizado
-                link_contato = "https://wa.me/5551991808303?text=Ol%C3%A1!%20Preciso%20do%20desenho%20dimensional%20de%20uma%20bomba%20Higra%20Mining."
-                st.markdown(f'''
-                <a href="{link_contato}" target="_blank" style="
-                    display: block;
-                    padding: 0.75rem 1.5rem;
-                    background: linear-gradient(45deg, #25D366, #128C7E);
-                    color: white;
-                    font-weight: bold;
-                    text-align: center;
-                    text-decoration: none;
-                    border-radius: 10px;
-                    margin-top: 1rem;
-                    transition: all 0.3s ease;
-                ">
-                    📞 {T['contact_button']}
-                </a>
-                ''', unsafe_allow_html=True)
-            
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        # Seção da Lista de Peças
-        with st.container():
-            st.markdown('<div class="section-container hover-effect">', unsafe_allow_html=True)
-            st.markdown(f'<div class="section-title">📋 {T["parts_list_header"]}</div>', unsafe_allow_html=True)
-            
-            if st.button(f"📄 {T['parts_list_button']}", use_container_width=True):
+                    else:
+                        st.warning(T['drawing_unavailable'])
+        
+        with st.container(border=True):
+             # ... (O CÓDIGO DA LISTA DE PEÇAS CONTINUA IGUAL, NÃO PRECISA MUDAR) ...
+            st.header(T['parts_list_header'])
+            if st.button(T['parts_list_button'], key=f"btn_lista_{key_prefix}", use_container_width=True):
                 st.session_state.mostrar_lista_pecas = not st.session_state.get('mostrar_lista_pecas', False)
 
             if st.session_state.get('mostrar_lista_pecas', False):
                 caminho_lista_pecas = Path(f"Lista/{modelo_selecionado}.pdf")
-                
-                link_contato_pecas = "https://wa.me/5551991808303?text=Ol%C3%A1!%20Preciso%20de%20ajuda%20com%20uma%20lista%20de%20pe%C3%A7as%20para%20uma%20bomba%20Higra%20Mining."
-                botao_contato_html = f'''
-                <a href="{link_contato_pecas}" target="_blank" style="
-                    display: block;
-                    padding: 0.75rem 1.5rem;
-                    background: linear-gradient(45deg, #25D366, #128C7E);
-                    color: white;
-                    font-weight: bold;
-                    text-align: center;
-                    text-decoration: none;
-                    border-radius: 10px;
-                    margin-top: 1rem;
-                    transition: all 0.3s ease;
-                ">
-                    📞 {T['contact_button']}
-                </a>
-                '''
-
                 if caminho_lista_pecas.exists():
-                    st.markdown(f"""
-                    <div style="background: linear-gradient(45deg, rgba(255, 193, 7, 0.1), rgba(255, 152, 0, 0.1)); 
-                                border-left: 4px solid #FFC107; border-radius: 10px; padding: 1rem; margin: 1rem 0;">
-                        <p style="color: rgba(255, 255, 255, 0.9); margin: 0;">
-                            ⚠️ {T['parts_list_warning']}
-                        </p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    if st.button(f"👁️ {T['view_parts_list_button']}", use_container_width=True, type="secondary"):
-                        st.session_state.mostrar_lista_visualizacao = not st.session_state.get('mostrar_lista_visualizacao', False)
-
-                    if st.session_state.get('mostrar_lista_visualizacao', False):
-                        mostrar_pdf(caminho_lista_pecas, legenda="Lista de Peças")
-                        if st.button(f"❌ {T['close_view_button']}", use_container_width=True, key='fechar_lista'):
-                            st.session_state.mostrar_lista_visualizacao = False
-                            st.rerun()
-
+                    st.info(T['parts_list_warning'])
                     with open(caminho_lista_pecas, "rb") as pdf_file:
-                        st.download_button(
-                            label=f"📥 {T['download_parts_list_button']}",
-                            data=pdf_file,
-                            file_name=caminho_lista_pecas.name,
-                            mime="application/pdf",
-                            use_container_width=True
-                        )
-                    
-                    st.markdown(botao_contato_html, unsafe_allow_html=True)
+                        st.download_button(label=T['download_parts_list_button'], data=pdf_file, file_name=caminho_lista_pecas.name, mime="application/pdf", use_container_width=True)
+                    mostrar_pdf(caminho_lista_pecas, legenda="Lista de Peças")
                 else:
-                    st.markdown(f"""
-                    <div style="background: linear-gradient(45deg, rgba(244, 67, 54, 0.1), rgba(233, 30, 99, 0.1)); 
-                                border-left: 4px solid #f44336; border-radius: 10px; padding: 1rem; margin: 1rem 0;">
-                        <p style="color: rgba(255, 255, 255, 0.9); margin: 0;">
-                            ⚠️ {T['parts_list_unavailable']}
-                        </p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    st.markdown(botao_contato_html, unsafe_allow_html=True)
-            
-            st.markdown('</div>', unsafe_allow_html=True)
+                    st.warning(T['parts_list_unavailable'])
+# ===================================================================
+# INTERFACE STREAMLIT (COM DESIGN E LAYOUT REESTRUTURADOS)
+# ===================================================================
 
-    st.markdown('</div>', unsafe_allow_html=True)
+# --- 1. Configurações Iniciais da Página e Estilos ---
+if 'lang' not in st.session_state: st.session_state.lang = 'pt'
+if 'resultado_busca' not in st.session_state: st.session_state.resultado_busca = None
+if 'search_source' not in st.session_state: st.session_state.search_source = None # Para controlar a origem da busca
 
+st.set_page_config(
+    layout="wide",
+    page_title="Seletor Higra Mining",
+    page_icon="iconhigra.png" 
+)
 
-# Dicionário de textos para internacionalização (i18n) do aplicativo
-# Estrutura: 'idioma': {'chave_do_texto': 'texto_traduzido'}
-texts = {
-    'pt': {
-        'page_title': "Higra Mining Seletor",
-        'main_title': "Seletor de Bombas Hidráulicas Higra Mining",
-        'welcome_message': "Bem-vindo! Insira os dados do seu ponto de trabalho para encontrar a melhor solução.",
-        'input_header': "Parâmetros de Entrada",
-        'eletric_freq_title': "Frequência Elétrica",
-        'freq_header': "Frequência",
-        'flow_header': "Vazão Desejada",
-        'pressure_header': "Pressão Desejada",
-        'flow_value_label': "Valor da Vazão",
-        'pressure_value_label': "Valor da Pressão",
-        'flow_unit_label': "Unidade Vazão",
-        'pressure_unit_label': "Unidade Pressão",
-        'selector_tab_label': "Seletor por Ponto de Operação",
-        'finder_tab_label': "Busca por Modelo",
-        'finder_header': "Busque diretamente pelo modelo da bomba",
-        'model_select_label': "1. Selecione o Modelo",
-        'motor_select_label': "2. Selecione o Motor (CV)",
-        'find_pump_button': "Buscar Bomba",
-        'show_finder_button': "Buscar por Modelo de Bomba",
-        'search_button': "Buscar Melhor Opção",
-        'spinner_text': "Calculando as melhores opções para {freq}...",
-        'converted_values_info': "Valores convertidos para busca: **Vazão: {vazao} m³/h** | **Pressão: {pressao} mca**",
-        'results_header': "Resultados da Busca",
-        'graph_header': "Gráfico de Performance",
-        'drawing_header': "Desenho Dimensional",
-        'parts_list_header': "Lista de Peças",
-        'view_graph_button': "Visualizar Gráfico",
-        'close_graph_button': "Fechar Gráfico",
-        'view_drawing_button': "Visualizar Desenho",
-        'view_parts_list_button': "Visualizar Lista de Peças",
-        'close_view_button': "Fechar Visualização",
-        'parts_list_button': "Lista de Peças",
-        'dimensional_drawing_button': "Desenho Dimensional",
-        'download_drawing_button': "Baixar Desenho Dimensional",
-        'parts_list_warning': "Atenção: A lista de peças é um documento de referência e pode conter variações. Em caso de dúvida ou para uma confirmação mais detalhada, entre em contato.",
-        'download_parts_list_button': "Baixar Lista de Peças",
-        'parts_list_unavailable': "Lista de peças indisponível. Entre em contato para receber.",
-        'dimensional_drawing_warning': "Atenção: O Desenho Dimensional é um documento de referência e pode conter variações. Em caso de dúvida ou para uma confirmação mais detalhada, entre em contato.",
-        'drawing_unavailable': "Desenho dimensional indisponível. Entre em contato para receber.",
-        'performance_note': "Nota: Nossos cálculos avançados para encontrar a bomba ideal podem levar alguns segundos. Agradecemos a sua paciência!",
-        'contact_button': "Contato",
-        'solution_unique': "✅ Solução encontrada com uma **ÚNICA BOMBA**:",
-        'solution_parallel': "⚠️ Nenhuma bomba única com bom rendimento. Alternativa: **DUAS BOMBAS EM PARALELO**:",
-        'solution_parallel_info': "Vazão e potência abaixo são POR BOMBA. Vazão total = 2x.",
-        'solution_series': "⚠️ Nenhuma opção única ou em paralelo. Alternativa: **DUAS BOMBAS EM SÉRIE**:",
-        'solution_series_info': "Pressão abaixo é POR BOMBA. Pressão total = 2x.",
-        'no_solution_error': "❌ Nenhuma bomba encontrada. Tente outros valores.",
-        'no_solution_found': "❌ Nenhuma bomba ou sistema de bombas foi encontrado para este ponto de trabalho. Tente outros valores ou entre em contato com nosso suporte.",
-        'show_unique_button': "Mostrar Bombas Únicas",
-        'show_systems_button': "Mostrar Sistemas Múltiplos",
-        'view_mode_unique': "Modo de visualização: Bombas Únicas",
-        'view_mode_systems': "Modo de visualização: Sistemas Múltiplos",
-        'no_unique_pumps': "❌ Nenhuma bomba única encontrada para estes parâmetros.",
-        'no_systems_found': "❌ Nenhum sistema com múltiplas bombas encontrado para estes parâmetros.",
-        'system_type_header': "Tipo de Sistema",
-        'pressure_error_header': "Erro de Pressão",
-        'relative_error_header': "Erro Relativo",
-        'system_type_single': "Única",
-        'system_type_parallel': "{} em Paralelo",
-        'system_type_series': "2 em Série",
-        'system_type_combined': "{} Bombas ({}x2)",
-        'quote_button_start': "Fazer Orçamento",
-        'quote_options_header': "Passo 1: Selecione os Opcionais da Bomba",
-        'quote_continue_button': "Continuar para o Próximo Passo",
-        'quote_contact_header': "Passo 2: Seus Dados de Contato",
-        'quote_form_name': "Seu Nome *",
-        'quote_form_email': "Seu E-mail *",
-        'quote_form_message': "Mensagem (opcional)",
-        'quote_form_button': "Enviar Pedido de Orçamento",
-        'quote_form_warning': "Por favor, preencha seu nome e e-mail.",
-        'quote_form_success': "Pedido pronto para ser enviado!",
-        'quote_form_click_here': "Clique aqui para abrir e enviar o e-mail",
-        'quote_form_info': "Seu programa de e-mail padrão será aberto com todas as informações preenchidas.",
-        'email_subject': "Pedido de Orçamento via Seletor de Bombas - {nome}",
-        'email_body': """Olá,\n\nUm novo pedido de orçamento foi gerado através do Seletor de Bombas.\n\nDADOS DO CLIENTE:\n- Nome: {nome}\n- E-mail: {email}\n\nMENSAGEM:\n{mensagem}\n\n---------------------------------\nPARÂMETROS DA BUSCA:\n- Frequência: {freq}\n- Vazão: {vazao} m³/h\n- Pressão: {pressao} mca\n\n---------------------------------\nRESULTADOS ENCONTRADOS:\n{tabela_resultados}"""
-    },
-    'en': {
-        'page_title': "Higra Mining Selector",
-        'main_title': "Higra Mining Hydraulic Pump Selector",
-        'welcome_message': "Welcome! Enter your duty point data to find the best solution.",
-        'input_header': "Input Parameters",
-        'eletric_freq_title': "Electrical Frequency",
-        'freq_header': "Frequency",
-        'flow_header': "Desired Flow",
-        'pressure_header': "Desired Head",
-        'flow_value_label': "Flow Value",
-        'pressure_value_label': "Head Value",
-        'flow_unit_label': "Flow Unit",
-        'pressure_unit_label': "Head Unit",
-        'selector_tab_label': "Selector by Duty Point",
-        'finder_tab_label': "Search by Model",
-        'finder_header': "Search directly by pump model",
-        'model_select_label': "1. Select Model",
-        'motor_select_label': "2. Select Motor (CV)",
-        'find_pump_button': "Find Pump",
-        'show_finder_button': "Search by Pump Model",
-        'search_button': "Find Best Option",
-        'spinner_text': "Calculating the best options for {freq}...",
-        'converted_values_info': "Converted values for search: **Flow: {vazao} m³/h** | **Head: {pressao} mca**",
-        'results_header': "Search Results",
-        'graph_header': "Performance Chart",
-        'drawing_header': "Dimensional Drawing",
-        'parts_list_header': "Parts List",
-        'view_graph_button': "View Chart",
-        'close_graph_button': "Close Chart",
-        'view_drawing_button': "View Drawing",
-        'view_parts_list_button': "View Parts List",
-        'close_view_button': "Close View",
-        'parts_list_button': "Parts List",
-        'dimensional_drawing_button': "Dimensional Drawing",
-        'download_drawing_button': "Download Dimensional Drawing",
-        'parts_list_warning': "Attention: The parts list is a reference document and may contain variations. If in doubt or for more detailed confirmation, please contact us.",
-        'download_parts_list_button': "Download Parts List",
-        'parts_list_unavailable': "Parts list unavailable. Please contact us to receive it.",
-        'dimensional_drawing_warning': "Attention: The Dimensional Drawing is a reference document and may contain variations. If in doubt or for more detailed confirmation, please contact us.",
-        'drawing_unavailable': "Dimensional drawing unavailable. Please contact us to receive it.",
-        'performance_note': "Note: Our advanced calculations to find the ideal pump may take a few seconds. We appreciate your patience!",
-        'contact_button': "Contact",
-        'solution_unique': "✅ Solution found with a **SINGLE PUMP**:",
-        'solution_parallel': "⚠️ No single pump with good efficiency. Alternative: **TWO PUMPS IN PARALLEL**:",
-        'solution_parallel_info': "Flow and power below are PER PUMP. Total flow = 2x.",
-        'solution_series': "⚠️ No single or parallel option. Alternative: **TWO PUMPS IN SERIES**:",
-        'solution_series_info': "Head below is PER PUMP. Total head = 2x.",
-        'no_solution_error': "❌ No pump found. Try other values.",
-        'no_solution_found': "❌ No pump or pump system was found for this duty point. Try other values or contact our support.",
-        'show_unique_button': "Show Single Pumps",
-        'show_systems_button': "Show Multiple Systems",
-        'view_mode_unique': "Viewing mode: Single Pumps",
-        'view_mode_systems': "Viewing mode: Multiple Systems",
-        'no_unique_pumps': "❌ No single pump found for these parameters.",
-        'no_systems_found': "❌ No multiple pump system found for these parameters.",
-        'system_type_header': "System Type",
-        'pressure_error_header': "Pressure Error",
-        'relative_error_header': "Relative Error",
-        'system_type_single': "Single",
-        'system_type_parallel': "{} in Parallel",
-        'system_type_series': "2 in Series",
-        'system_type_combined': "{} Pumps ({}x2)",
-        'quote_button_start': "Request a Quote",
-        'quote_options_header': "Step 1: Select Pump Options",
-        'quote_continue_button': "Continue to Next Step",
-        'quote_contact_header': "Step 2: Your Contact Information",
-        'quote_form_name': "Your Name *",
-        'quote_form_email': "Your Email *",
-        'quote_form_message': "Message (optional)",
-        'quote_form_button': "Send Quote Request",
-        'quote_form_warning': "Please fill in your name and email.",
-        'quote_form_success': "Request ready to be sent!",
-        'quote_form_click_here': "Click here to open and send the email",
-        'quote_form_info': "Your default email client will open with all the information pre-filled.",
-        'email_subject': "Quote Request via Pump Selector - {nome}",
-        'email_body': """Hello,\n\nA new quote request has been generated through the Pump Selector.\n\nCUSTOMER DATA:\n- Name: {nome}\n- Email: {email}\n\nMESSAGE:\n{mensagem}\n\n---------------------------------\nSEARCH PARAMETERS:\n- Frequency: {freq}\n- Flow: {vazao} m³/h\n- Head: {pressao} mca\n\n---------------------------------\nRESULTS FOUND:\n{tabela_resultados}"""
-    },
-    'es': {
-        'page_title': "Selector Higra Mining",
-        'main_title': "Selector de Bombas Hidráulicas Higra Mining",
-        'welcome_message': "¡Bienvenido! Ingrese los datos de su punto de trabajo para encontrar la mejor solución.",
-        'input_header': "Parámetros de Entrada",
-        'eletric_freq_title': "Frecuencia Eléctrica",
-        'freq_header': "Frecuencia",
-        'flow_header': "Caudal Deseado",
-        'pressure_header': "Altura Deseada",
-        'flow_value_label': "Valor del Caudal",
-        'pressure_value_label': "Valor de la Altura",
-        'flow_unit_label': "Unidad Caudal",
-        'pressure_unit_label': "Unidad Altura",
-        'selector_tab_label': "Selector por Punto de Trabajo",
-        'finder_tab_label': "Buscador por Modelo",
-        'finder_header': "Busque directamente por el modelo de la bomba",
-        'model_select_label': "1. Seleccione el Modelo",
-        'motor_select_label': "2. Seleccione el Motor (CV)",
-        'find_pump_button': "Buscar Bomba",
-        'show_finder_button': "Buscar por Modelo de Bomba",
-        'search_button': "Buscar Mejor Opción",
-        'spinner_text': "Calculando las mejores opciones para {freq}...",
-        'converted_values_info': "Valores convertidos para la búsqueda: **Caudal: {vazao} m³/h** | **Altura: {pressao} mca**",
-        'results_header': "Resultados de la Búsqueda",
-        'graph_header': "Gráfico de Rendimiento",
-        'drawing_header': "Dibujo Dimensional",
-        'parts_list_header': "Lista de Repuestos",
-        'view_graph_button': "Visualizar Gráfico",
-        'close_graph_button': "Cerrar Gráfico",
-        'view_drawing_button': "Visualizar Dibujo",
-        'view_parts_list_button': "Visualizar Lista de Repuestos",
-        'close_view_button': "Cerrar Visualización",
-        'parts_list_button': "Lista de Repuestos",
-        'dimensional_drawing_button': "Dibujo Dimensional",
-        'download_parts_list_button': "Descargar Lista de Repuestos",
-        'parts_list_warning': "Atención: La lista de repuestos es un documento de referencia y puede contener variaciones. En caso de duda o para una confirmación más detallada, póngase en contacto.",
-        'parts_list_unavailable': "Lista de repuestos no disponible. Por favor, póngase en contacto para recibirla.",
-        'dimensional_drawing_warning': "Atención: El Dibujo Dimensional es un documento de referencia y puede contener variaciones. En caso de duda o para una confirmación más detallada, por favor, póngase en contacto.",
-        'solution_unique': "✅ Solución encontrada con **BOMBA ÚNICA**:",
-        'solution_parallel': "⚠️ Ninguna bomba única con buen rendimiento. Alternativa: **DOS BOMBAS EN PARALELO**:",
-        'solution_parallel_info': "El caudal y la potencia a continuación son POR BOMBA. Caudal total = 2x.",
-        'solution_series': "⚠️ Ninguna opción única o en paralelo. Alternativa: **DOS BOMBAS EN SERIE**:",
-        'solution_series_info': "La altura a continuación es POR BOMBA. Altura total = 2x.",
-        'no_solution_error': "❌ No se encontró ninguna bomba. Pruebe otros valores."
-    }
+COR_PRIMARIA = "#134883"
+COR_SECUNDARIA = "#F8AC2E"
+COR_FUNDO = "#F0F5FF"
+COR_TEXTO = "#333333"
+
+st.markdown(f"""
+<style>
+    /* Configurações gerais */
+    .stApp {{
+        background-color: {COR_FUNDO};
+        color: {COR_TEXTO};
+    }}
+    
+    /* Cabeçalhos */
+    h1, h2, h3 {{
+        color: {COR_PRIMARIA};
+    }}
+
+    /* Botões Principais de Ação */
+    .stButton>button {{
+        border: 2px solid {COR_PRIMARIA};
+        background-color: {COR_PRIMARIA};
+        color: white;
+        font-weight: bold;
+        transition: all 0.3s ease;
+        border-radius: 8px;
+    }}
+    .stButton>button:hover {{
+        background-color: white;
+        color: {COR_PRIMARIA};
+    }}
+    
+    /* Alertas */
+    .stAlert > div {{ border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 15px 20px; }}
+    .stAlert-info {{ background-color: #e3f2fd; color: {COR_PRIMARIA}; border-left: 5px solid {COR_PRIMARIA}; }}
+    .stAlert-error {{ background-color: #ffebee; color: #b71c1c; border-left: 5px solid #E74C3C; }}
+
+    /* Containers com Borda (Cards) */
+    [data-testid="stVerticalBlock"] > [style*="flex-direction: column;"] > [data-testid="stVerticalBlock"] {{
+        border: 1px solid #e1e4e8;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        background-color: white;
+    }}
+
+    /* Container de bandeiras */
+    .bandeira-container {{ cursor: pointer; transition: all 0.2s ease-in-out; border-radius: 8px; padding: 5px; margin-top: 10px; border: 2px solid transparent; }}
+    .bandeira-container:hover {{ transform: scale(1.1); background-color: rgba(19, 72, 131, 0.1); }}
+    .bandeira-container.selecionada {{ border: 2px solid {COR_SECUNDARIA}; box-shadow: 0 0 10px rgba(248, 172, 46, 0.5); }}
+    .bandeira-img {{ width: 45px; height: 30px; object-fit: cover; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }}
+
+    /* Estilização das Abas (st.tabs) */
+    [data-baseweb="tab-list"] {{
+        gap: 8px;
+        border-bottom: none !important;
+        margin-bottom: 10px;
+    }}
+    [data-baseweb="tab-list"] button {{
+        border-radius: 8px !important;
+        transition: all 0.3s ease !important;
+        padding: 10px 20px !important;
+        font-weight: bold;
+        border: none !important;
+    }}
+    [data-baseweb="tab-list"] button[aria-selected="false"] {{
+        background-color: #e3f2fd !important;
+        color: {COR_PRIMARIA} !important;
+    }}
+    [data-baseweb="tab-list"] button[aria-selected="false"]:hover {{
+        background-color: #d1e9fc !important;
+    }}
+    [data-baseweb="tab-list"] button[aria-selected="true"] {{
+        background-color: {COR_PRIMARIA} !important;
+        color: white !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        position: relative;
+    }}
+    [data-baseweb="tab-list"] button[aria-selected="true"]::after {{
+        content: '';
+        position: absolute;
+        bottom: -5px;
+        left: 5%;
+        width: 90%;
+        height: 4px;
+        background-color: {COR_SECUNDARIA};
+        border-radius: 2px;
+    }}
+
+    /* ========================================================================= */
+    /* NOVO: Estilos específicos para os campos da CALCULADORA DE SISTEMA        */
+    /* ========================================================================= */
+    .calculator-container div[data-testid="stNumberInput"] > div > div,
+    .calculator-container div[data-testid="stSelectbox"] > div {{
+        background-color: #FFF9E9 !important; /* Fundo amarelo clarinho */
+        border: 1px solid #F8AC2E !important; /* Borda amarela sutil */
+        border-radius: 8px !important;
+    }}
+
+    .calculator-container div[data-testid="stNumberInput"] input {{
+        background-color: transparent !important;
+    }}
+</style>
+""", unsafe_allow_html=True)
+
+# --- 2. Cabeçalho com Logo e Seleção de Idioma ---
+query_params = st.query_params
+if 'lang' in query_params:
+    lang_from_url = query_params['lang']
+    if lang_from_url in ['pt', 'en', 'es']:
+        st.session_state.lang = lang_from_url
+
+bandeiras = {
+    "pt": {"nome": "PT", "img": "brasil.png"},
+    "en": {"nome": "EN", "img": "uk.png"},
+    "es": {"nome": "ES", "img": "espanha.png"}
 }
+
+# Mantém as bandeiras no canto direito superior
+_, col_bandeiras = st.columns([6, 2])
+with col_bandeiras:
+    flag_cols = st.columns(len(bandeiras))
+    for i, (lang_code, info) in enumerate(bandeiras.items()):
+        with flag_cols[i]:
+            classe_css = "selecionada" if st.session_state.lang == lang_code else ""
+            img_base64 = image_to_base64(info["img"])
+            st.markdown(f"""
+            <a href="?lang={lang_code}" target="_self" style="text-decoration: none;">
+                <div style="display: flex; flex-direction: column; align-items: center; font-family: 'Source Sans Pro', sans-serif; font-weight: bold; color: {COR_PRIMARIA};">
+                    <span>{info['nome']}</span>
+                    <div class="bandeira-container {classe_css}">
+                        <img src="data:image/png;base64,{img_base64}" class="bandeira-img">
+                    </div>
+                </div>
+            </a>
+            """, unsafe_allow_html=True)
+
+# Centraliza o Logo
+col1, col_logo_centro, col3 = st.columns([2, 3, 2])
+with col_logo_centro:
+    st.image("logo.png", width=700)
+
+T = TRADUCOES[st.session_state.lang]
+
+# Centraliza os Textos
+st.markdown(f"<h1 style='text-align: center;'>{T['main_title']}</h1>", unsafe_allow_html=True)
+st.markdown(f"<p style='text-align: center;'>{T['welcome_message']}</p>", unsafe_allow_html=True)
+st.info(T['performance_note'])
+st.divider()
+
+
+# --- 3. Bloco de Entradas do Usuário ---
+with st.container(border=True):
+    # Cria as abas com base na configuração MOSTRAR_CALCULADORA
+    if MOSTRAR_CALCULADORA:
+        tab_seletor, tab_buscador, tab_calculadora = st.tabs([
+            T['selector_tab_label'], T['finder_tab_label'], T['calculator_tab_label']
+        ])
+    else:
+        tab_seletor, tab_buscador = st.tabs([
+            T['selector_tab_label'], T['finder_tab_label']
+        ])
+
+    ARQUIVOS_DADOS = { "60Hz": "60Hz.xlsx", "50Hz": "50Hz.xlsx" }
+    FATORES_VAZAO = { "m³/h": 1.0, "gpm (US)": 0.2271247, "l/s": 3.6 }
+    FATORES_PRESSAO = { "mca": 1.0, "ftH₂O": 0.3048, "bar": 10.197, "kgf/cm²": 10.0 }
+    
+    # Aba 1: Seletor por Ponto de Trabalho
+    with tab_seletor:
+        st.subheader(T['input_header'])
+        
+        col_freq, col_vazao, col_pressao = st.columns(3)
+        with col_freq:
+            st.markdown(f"**{T['eletric_freq_title']}**")
+            frequencia_selecionada = st.radio(T['freq_header'], list(ARQUIVOS_DADOS.keys()), horizontal=True, label_visibility="collapsed", key='freq_seletor')
+        with col_vazao:
+            st.markdown(T['flow_header'])
+            v_col1, v_col2 = st.columns([2,1])
+            with v_col1: vazao_bruta = st.number_input(T['flow_value_label'], min_value=0.1, value=100.0, step=10.0, label_visibility="collapsed", key='vazao_bruta')
+            with v_col2: unidade_vazao = st.selectbox(T['flow_unit_label'], list(FATORES_VAZAO.keys()), label_visibility="collapsed", key='unidade_vazao')
+        with col_pressao:
+            st.markdown(T['pressure_header'])
+            p_col1, p_col2 = st.columns([2,1])
+            with p_col1: pressao_bruta = st.number_input(T['pressure_value_label'], min_value=0.1, value=100.0, step=5.0, label_visibility="collapsed", key='pressao_bruta')
+            with p_col2: unidade_pressao = st.selectbox(T['pressure_unit_label'], list(FATORES_PRESSAO.keys()), label_visibility="collapsed", key='unidade_pressao')
+
+        st.divider()
+        vazao_para_busca = round(vazao_bruta * FATORES_VAZAO[unidade_vazao])
+        pressao_para_busca = round(pressao_bruta * FATORES_PRESSAO[unidade_pressao])
+        st.info(T['converted_values_info'].format(vazao=vazao_para_busca, pressao=pressao_para_busca))
+
+        if st.button(T['search_button'], use_container_width=True, key='btn_seletor', type="primary"):
+            st.session_state.search_source = 'seletor'
+            st.session_state.resultado_calculadora = None # Limpa resultado da outra aba
+            df_processado = carregar_e_processar_dados(ARQUIVOS_DADOS[frequencia_selecionada])
+            st.session_state.last_used_freq = frequencia_selecionada
+            with st.spinner(T['spinner_text'].format(freq=frequencia_selecionada)):
+                bombas_unicas, sistemas_multiplos = selecionar_bombas(df_processado, vazao_para_busca, pressao_para_busca)
+                st.session_state.resultado_bombas_unicas = bombas_unicas
+                st.session_state.resultado_sistemas_multiplos = sistemas_multiplos
+                if not bombas_unicas.empty: st.session_state.modo_visualizacao = 'unicas'
+                elif not sistemas_multiplos.empty: st.session_state.modo_visualizacao = 'multiplas'
+                else: st.session_state.modo_visualizacao = 'unicas'
+                st.session_state.resultado_busca = True 
+            st.rerun()
+        
+        if st.session_state.search_source == 'seletor' and st.session_state.get('resultado_busca'):
+            exibir_resultados_busca(T, key_prefix='seletor')
+
+    # Aba 2: Buscador por Modelo
+    with tab_buscador:
+        st.subheader(T['finder_header'])
+        col_freq_busca, col_modelo_busca, col_motor_busca = st.columns(3)
+        
+        with col_freq_busca:
+            st.markdown(f"**{T['eletric_freq_title']}**")
+            frequencia_buscador = st.radio(T['freq_header'], list(ARQUIVOS_DADOS.keys()), horizontal=True, key='freq_buscador')
+
+        df_buscador = carregar_e_processar_dados(ARQUIVOS_DADOS[frequencia_buscador])
+        if df_buscador is not None:
+            with col_modelo_busca:
+                st.markdown(f"**{T['model_select_label']}**")
+                lista_modelos = ["-"] + sorted(df_buscador['MODELO'].unique())
+                modelo_selecionado_buscador = st.selectbox(T['model_select_label'], lista_modelos, key='modelo_buscador', label_visibility="collapsed")
+
+            with col_motor_busca:
+                st.markdown(f"**{T['motor_select_label']}**")
+                motor_selecionado_buscador = None
+                if modelo_selecionado_buscador and modelo_selecionado_buscador != "-":
+                    motores_unicos = df_buscador[df_buscador['MODELO'] == modelo_selecionado_buscador]['MOTOR PADRÃO (CV)'].unique()
+                    motores_disponiveis = sorted([motor for motor in motores_unicos if pd.notna(motor)])
+                    if motores_disponiveis:
+                        motor_selecionado_buscador = st.selectbox(T['motor_select_label'], motores_disponiveis, key='motor_buscador', label_visibility="collapsed")
+                    else: st.selectbox(T['motor_select_label'], ["-"], disabled=True, label_visibility="collapsed")
+                else: st.selectbox(T['motor_select_label'], ["-"], disabled=True, label_visibility="collapsed")
+
+            st.divider()
+            if modelo_selecionado_buscador and modelo_selecionado_buscador != "-" and motor_selecionado_buscador:
+                if st.button(T['find_pump_button'], use_container_width=True, key='btn_find_pump', type="primary"):
+                    st.session_state.search_source = 'buscador'
+                    st.session_state.resultado_calculadora = None # Limpa resultado da outra aba
+                    st.session_state.last_used_freq = frequencia_buscador
+                    resultado = buscar_por_modelo_e_motor(df_buscador, modelo_selecionado_buscador, motor_selecionado_buscador)
+                    if not resultado.empty:
+                        st.session_state.resultado_bombas_unicas = resultado
+                        st.session_state.resultado_sistemas_multiplos = pd.DataFrame()
+                        st.session_state.modo_visualizacao = 'unicas'
+                        st.session_state.resultado_busca = True
+                    else:
+                        st.session_state.resultado_busca = None
+                        st.error(T['no_solution_error'])
+                    st.rerun()
+
+        if st.session_state.search_source == 'buscador' and st.session_state.get('resultado_busca'):
+            exibir_resultados_busca(T, key_prefix='buscador')
+
+    # Aba 3: Calculadora de Sistema
+    if MOSTRAR_CALCULADORA:
+     with tab_calculadora:
+        st.subheader(T['calculator_header'])
+        st.write(T['calculator_intro'])
+        st.write("---")
+        
+        if 'resultado_calculadora' not in st.session_state:
+            st.session_state.resultado_calculadora = None
+
+        FATORES_TEMP = {"°C": 1.0, "°F": 0.5556}
+        FATORES_COMPRIMENTO = {"m": 1.0, "ft": 0.3048}
+        FATORES_DIAMETRO = {"mm": 1.0, "in": 25.4}
+
+        with st.container(border=True):
+            st.markdown(f"**{T['section_general_data']}**")
+            col_freq_calc, col_vazao_calc, col_temp_calc = st.columns(3)
+            with col_freq_calc:
+                 st.markdown(f"**{T['eletric_freq_title']}**")
+                 frequencia_calculadora = st.radio(T['freq_header'], list(ARQUIVOS_DADOS.keys()), horizontal=True, label_visibility="collapsed", key='freq_calc')
+            with col_vazao_calc:
+                st.markdown(T['desired_flow_rate'])
+                c1, c2 = st.columns([2,1])
+                with c1: vazao_req_bruta = st.number_input("Vazão", min_value=0.1, value=100.0, step=10.0, label_visibility="collapsed", key='vazao_req_bruta')
+                with c2: unidade_vazao_req = st.selectbox("Unidade Vazão", list(FATORES_VAZAO.keys()), label_visibility="collapsed", key='unidade_vazao_req')
+            with col_temp_calc:
+                st.markdown(T['fluid_temperature'])
+                c1, c2 = st.columns([2,1])
+                with c1: temp_fluido_bruta = st.number_input("Temperatura", value=20, label_visibility="collapsed", key='temp_fluido_bruta')
+                with c2: unidade_temp = st.selectbox("Unidade Temp", ["°C", "°F"], label_visibility="collapsed", key='unidade_temp')
+
+        with st.container(border=True):
+            st.markdown(f"**{T['section_piping']}**")
+            col_mat, col_diam, col_comp = st.columns(3)
+            with col_mat:
+                st.markdown(T['pipe_material'])
+                materiais_map = {
+                    T['pipe_material_cs']: 'cs', T['pipe_material_ss']: 'ss',
+                    T['pipe_material_di']: 'di', T['pipe_material_ci']: 'ci',
+                    T['pipe_material_pvc']: 'pvc', T['pipe_material_hdpe']: 'hdpe',
+                }
+                material_display = st.selectbox("Material", options=list(materiais_map.keys()), label_visibility="collapsed", key='mat_tubo')
+                material_tubo_key = materiais_map[material_display]
+            with col_diam:
+                st.markdown(T['pipe_diameter'])
+                c1, c2 = st.columns([2,1])
+                with c1: diametro_tubo_bruto = st.number_input("Diâmetro", min_value=1.0, value=150.0, step=1.0, label_visibility="collapsed", key='diam_tubo_bruto')
+                with c2: unidade_diametro = st.selectbox("Unidade Diâmetro", list(FATORES_DIAMETRO.keys()), label_visibility="collapsed", key='unidade_diam')
+            with col_comp:
+                st.markdown(T['pipe_length'])
+                c1, c2 = st.columns([2,1])
+                with c1: comprimento_tubo_bruto = st.number_input("Comprimento", min_value=0.1, value=100.0, step=5.0, label_visibility="collapsed", key='comp_tubo_bruto')
+                with c2: unidade_comprimento = st.selectbox("Unidade Comprimento", list(FATORES_COMPRIMENTO.keys()), label_visibility="collapsed", key='unidade_comp')
+
+        with st.container(border=True):
+            st.markdown(f"**{T['section_elevation']}**")
+            col_succao, col_recalque = st.columns(2)
+            with col_succao:
+                st.markdown(T['suction_elevation'])
+                c1, c2 = st.columns([2,1])
+                with c1: alt_succao_bruta = st.number_input("Sucção", value=2.0, step=0.5, label_visibility="collapsed", key='alt_succao_bruta')
+                with c2: unidade_alt_succao = st.selectbox("Unidade Altura Sucção", list(FATORES_COMPRIMENTO.keys()), label_visibility="collapsed", key='unidade_alt_s')
+            with col_recalque:
+                st.markdown(T['discharge_elevation'])
+                c1, c2 = st.columns([2,1])
+                with c1: alt_recalque_bruta = st.number_input("Recalque", value=30.0, step=1.0, label_visibility="collapsed", key='alt_recalque_bruta')
+                with c2: unidade_alt_recalque = st.selectbox("Unidade Altura Recalque", list(FATORES_COMPRIMENTO.keys()), label_visibility="collapsed", key='unidade_alt_r')
+            st.caption(T['elevation_help'])
+
+        with st.container(border=True):
+            st.markdown(f"**{T['section_fittings']}**")
+            col_ac1, col_ac2, col_ac3, col_ac4 = st.columns(4)
+            with col_ac1:
+                qtd_cotovelo90 = st.number_input(T['elbow_90'], min_value=0, value=0, step=1, key='qtd_c90')
+            with col_ac2:
+                qtd_cotovelo45 = st.number_input(T['elbow_45'], min_value=0, value=0, step=1, key='qtd_c45')
+            with col_ac3:
+                qtd_valv_gaveta = st.number_input(T['gate_valve'], min_value=0, value=1, step=1, key='qtd_vg')
+            with col_ac4:
+                qtd_valv_retencao = st.number_input(T['check_valve'], min_value=0, value=1, step=1, key='qtd_vr')
+
+        st.write("") 
+        
+        if st.button(T['calculate_button'], use_container_width=True, key='btn_calc', type="primary"):
+            st.session_state.search_source = 'calculadora'
+            st.session_state.resultado_busca = None
+
+            temp_c = (temp_fluido_bruta - 32) * FATORES_TEMP[unidade_temp] if unidade_temp == '°F' else temp_fluido_bruta
+            dados_para_calculo = {
+                'vazao_m3h': vazao_req_bruta * FATORES_VAZAO[unidade_vazao_req],
+                'temperatura_c': temp_c, 'material_key': material_tubo_key,
+                'diametro_mm': diametro_tubo_bruto * FATORES_DIAMETRO[unidade_diametro],
+                'comprimento_m': comprimento_tubo_bruto * FATORES_COMPRIMENTO[unidade_comprimento],
+                'alt_succao_m': alt_succao_bruta * FATORES_COMPRIMENTO[unidade_alt_succao],
+                'alt_recalque_m': alt_recalque_bruta * FATORES_COMPRIMENTO[unidade_alt_recalque],
+                'qtd_cotovelo90': qtd_cotovelo90, 'qtd_cotovelo45': qtd_cotovelo45,
+                'qtd_valv_gaveta': qtd_valv_gaveta, 'qtd_valv_retencao': qtd_valv_retencao
+            }
+            try:
+                amt_calculada, vazao_calculada = calcular_ponto_trabalho(dados_para_calculo)
+                st.session_state.resultado_calculadora = {"vazao": vazao_calculada, "pressao": amt_calculada}
+            except Exception as e:
+                st.error(f"Ocorreu um erro no cálculo: {e}")
+                st.session_state.resultado_calculadora = None
+            st.rerun()
+
+        if st.session_state.search_source == 'calculadora' and st.session_state.resultado_calculadora:
+            st.write("---")
+            st.subheader(T['results_header_calculator'])
+            resultado = st.session_state.resultado_calculadora
+            
+            col1, col2 = st.columns(2)
+            col1.metric(label=T['flow_header'].replace('*',''), value=f"{resultado['vazao']:.2f} m³/h")
+            col2.metric(label=T['pressure_header'].replace('*',''), value=f"{resultado['pressao']:.2f} mca")
+
+            if st.button(T['search_with_data_button'], use_container_width=True, key="btn_calc_search"):
+                df_processado = carregar_e_processar_dados(ARQUIVOS_DADOS[frequencia_calculadora])
+                vazao_para_busca = round(resultado['vazao'])
+                pressao_para_busca = round(resultado['pressao'])
+                st.session_state.last_used_freq = frequencia_calculadora
+                
+                with st.spinner(T['spinner_text'].format(freq=frequencia_calculadora)):
+                    bombas_unicas, sistemas_multiplos = selecionar_bombas(df_processado, vazao_para_busca, pressao_para_busca)
+                    st.session_state.resultado_bombas_unicas = bombas_unicas
+                    st.session_state.resultado_sistemas_multiplos = sistemas_multiplos
+                    if not bombas_unicas.empty: st.session_state.modo_visualizacao = 'unicas'
+                    elif not sistemas_multiplos.empty: st.session_state.modo_visualizacao = 'multiplas'
+                    else: st.session_state.modo_visualizacao = 'unicas'
+                    st.session_state.resultado_busca = True
+                st.rerun()
+        
+        if st.session_state.search_source == 'calculadora' and st.session_state.get('resultado_busca'):
+             exibir_resultados_busca(T, key_prefix='calculadora')
+             
+st.divider()
+st.markdown(
+    f"""
+    <p style='text-align: center; color: grey;'>
+        {T['footer_copyright']}<br>
+        {T['footer_more_info']}<a href='https://www.higramining.com.br' target='_blank'>{T['footer_our_website']}</a>.
+    </p>
+    """,
+    unsafe_allow_html=True
+)           
