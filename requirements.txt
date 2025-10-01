@@ -1,2 +1,6 @@
 streamlit
 PyMuPDF
+pandas
+numpy
+openpyxl
+pillow
