@@ -17,8 +17,8 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.title("Analisador de Proposta Técnica 🕵️")
-st.info("Esta página é de uso interno e só é visível com o link secreto.")
+st.title("🕵️")
+st.info("Interno")
 st.write("---")
 
 # -------------------------------------------------------------------
@@ -708,6 +708,7 @@ if uploaded_file is not None:
                     with st.expander(f"❌ {res['regra']}: FALHA", expanded=True):
                         st.error(f"**Status:** {res['status']}")
                         st.warning(f"**Detalhes:** {res['detalhes']}")
+
 
 
 
